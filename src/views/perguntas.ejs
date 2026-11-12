@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Busca</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+    <style>
+        .faq-resposta {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: normal;
+        }
+    </style>
+
+</head>
+<body class="bg-light">
+
+<div id="app" class="container py-5">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">
+                    FAQ - Puc Goiás CAD
+                </h1>
+
+                <div class="d-flex gap-2">
+                    <a href="/usuarios" class="btn btn-outline-secondary">
+                        Usuários
+                    </a>
+
+                    <a href="/cadastrar/variavel" class="btn btn-outline-secondary">
+                        Variáveis
+                    </a>
+
+                    <form method="post" action="/logout">
+                        <button type="submit" class="btn btn-outline-danger">
+                            Sair
+                        </button>
+                    </form>
+
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalCadastroPergunta"
+                    >
+                        Nova pergunta
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    v-model="busca"
+                    placeholder="Digite o assunto..."
+                    autofocus
+                >
+            </div>
+
+            <div v-if="carregando" class="text-center">
+                Carregando perguntas...
+            </div>
+
+            <div
+                v-else-if="perguntasFiltradas.length === 0"
+                class="alert alert-secondary"
+            >
+                Nenhuma pergunta encontrada.
+            </div>
+
+            <div v-else class="accordion">
+
+                <div
+                    v-for="pergunta in perguntasFiltradas"
+                    :key="pergunta.id"
+                    class="accordion-item"
+                >
+                    <h2 class="accordion-header">
+                        <button
+                            class="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            :data-bs-target="'#pergunta-' + pergunta.id"
+                        >
+                            {{ pergunta.titulo }}
+                        </button>
+                    </h2>
+
+                    <div
+                        :id="'pergunta-' + pergunta.id"
+                        class="accordion-collapse collapse"
+                    >
+                        <div class="accordion-body">
+                            <div class="d-flex justify-content-end gap-2 mb-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    @click="abrirModalEdicao(pergunta)"
+                                >
+                                    Editar
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    @click="copiarResposta(pergunta.resposta)"
+                                >
+                                    Copiar
+                                </button>
+                            </div>
+
+                            <div class="faq-resposta" v-html="pergunta.resposta"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <div
+        class="modal fade"
+        id="modalEditarPergunta"
+        tabindex="-1"
+        aria-labelledby="modalEditarPerguntaLabel"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="modalEditarPerguntaLabel">
+                        Editar pergunta
+                    </h2>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar"
+                    ></button>
+                </div>
+
+                <div class="modal-body">
+                    <form @submit.prevent="salvarEdicaoPergunta">
+                        <div class="mb-3">
+                            <label for="edit-titulo" class="form-label">
+                                Título
+                            </label>
+
+                            <input
+                                type="text"
+                                id="edit-titulo"
+                                class="form-control"
+                                v-model="editForm.titulo"
+                                required
+                            >
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Resposta
+                            </label>
+
+                            <div class="border rounded">
+                                <div id="editor-edicao-resposta" style="min-height: 200px;"></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <button
+                                type="button"
+                                class="btn btn-secondary"
+                                data-bs-dismiss="modal"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                                :disabled="salvandoEdicao"
+                            >
+                                {{ salvandoEdicao ? 'Salvando...' : 'Salvar alteração' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div
+        class="modal fade"
+        id="modalCadastroPergunta"
+        tabindex="-1"
+        aria-labelledby="modalCadastroPerguntaLabel"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="modalCadastroPerguntaLabel">
+                        Cadastro de FAQ
+                    </h2>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Fechar"
+                    ></button>
+                </div>
+
+                <div class="modal-body">
+                    <form @submit.prevent="cadastrarPergunta">
+                        <div class="mb-3">
+                            <label for="titulo" class="form-label">
+                                Título
+                            </label>
+
+                            <input
+                                type="text"
+                                id="titulo"
+                                class="form-control"
+                                v-model="form.titulo"
+                                placeholder="Informe um título para sua pergunta"
+                                required
+                            >
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Resposta
+                            </label>
+
+                            <div class="border rounded">
+                                <div id="editor-resposta" style="min-height: 200px;"></div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a
+                                target="_blank"
+                                href="/cadastrar/variavel"
+                                class="btn btn-outline-secondary"
+                            >
+                                Variáveis
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Cadastrar pergunta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+<script src="/js/perguntas.js"></script>
+
+</body>
+</html>
