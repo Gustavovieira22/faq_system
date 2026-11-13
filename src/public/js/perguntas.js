@@ -198,11 +198,38 @@ createApp({
             return texto.trim();
         },
 
+        copiarTextoComFallback(texto) {
+            const textarea = document.createElement('textarea');
+
+            textarea.value = texto;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
+
+            document.body.appendChild(textarea);
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+
+            const copiado = document.execCommand('copy');
+
+            document.body.removeChild(textarea);
+
+            if (!copiado) {
+                throw new Error('Comando de copia bloqueado pelo navegador.');
+            }
+        },
+
         async copiarResposta(respostaHtml) {
             try {
                 const texto = this.htmlParaTextoWhatsapp(respostaHtml);
 
-                await navigator.clipboard.writeText(texto);
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(texto);
+                    return;
+                }
+
+                this.copiarTextoComFallback(texto);
 
             } catch (error) {
                 console.error('Erro ao copiar resposta:', error);
