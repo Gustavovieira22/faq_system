@@ -43,6 +43,78 @@ export async function criarVariavel(req, res) {
     }
 }
 
+export async function salvarTabelaVariaveis(req, res) {
+    const transaction = await Variavel.sequelize.transaction();
+
+    try {
+        const { variaveis } = req.body;
+
+        if (!Array.isArray(variaveis)) {
+            await transaction.rollback();
+
+            return res.status(400).json({
+                erro: 'Lista de variaveis invalida.'
+            });
+        }
+
+        const nomes = new Set();
+        const registros = [];
+
+        for (const item of variaveis) {
+            const nome = String(item.nome ?? '').trim();
+            const valor = String(item.valor ?? '').trim();
+
+            if (!nome || !valor) {
+                continue;
+            }
+
+            if (!/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)?$/.test(nome)) {
+                await transaction.rollback();
+
+                return res.status(400).json({
+                    erro: `Nome de variavel invalido: ${nome}`
+                });
+            }
+
+            if (nomes.has(nome)) {
+                await transaction.rollback();
+
+                return res.status(400).json({
+                    erro: `Variavel duplicada: ${nome}`
+                });
+            }
+
+            nomes.add(nome);
+            registros.push({ nome, valor });
+        }
+
+        await Variavel.destroy({ where: {}, transaction });
+
+        if (registros.length > 0) {
+            await Variavel.bulkCreate(registros, { transaction });
+        }
+
+        await transaction.commit();
+
+        const variaveisSalvas = await Variavel.findAll({
+            order: [['nome', 'ASC']]
+        });
+
+        res.json(variaveisSalvas);
+
+    } catch (error) {
+        if (!transaction.finished) {
+            await transaction.rollback();
+        }
+
+        console.error(error);
+
+        res.status(500).json({
+            erro: 'Erro ao salvar variaveis.'
+        });
+    }
+}
+
 export async function atualizarVariavel(req, res) {
     try {
         const { id } = req.params;

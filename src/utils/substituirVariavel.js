@@ -3,7 +3,7 @@ export function substituirVariaveis(texto, variaveis) {
         return texto;
     }
 
-    return texto.replace(/\{\{\s*([A-Z0-9_]+)\s*\}\}/g, (match, nome) => {
+    return texto.replace(/\{\{\s*([A-Za-z0-9_.]+)\s*\}\}/g, (match, nome) => {
         const variavel = variaveis.find(
             variavel => variavel.nome === nome
         );

@@ -3,227 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Variáveis</title>
+    <title>Variaveis</title>
 
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
+
+    <style>
+        .variables-table th,
+        .variables-table td {
+            min-width: 180px;
+            vertical-align: middle;
+        }
+
+        .variables-table th:first-child,
+        .variables-table td:first-child {
+            left: 0;
+            min-width: 220px;
+            position: sticky;
+            z-index: 2;
+        }
+
+        .variables-table th:first-child {
+            background: #f8f9fa;
+        }
+
+        .variables-table td:first-child {
+            background: #fff;
+        }
+
+        .placeholder-code {
+            color: #d63384;
+            cursor: pointer;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            font-size: .875rem;
+            overflow-wrap: anywhere;
+        }
+
+        .table-input {
+            min-width: 160px;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
-<div id="app" class="container py-5">
+<div id="app" class="container-fluid py-4 px-3 px-lg-4">
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                Variaveis
+            </h1>
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">
-                    Variáveis
-                </h1>
-
-                <a href="/buscar/perguntas" class="btn btn-outline-secondary">
-                    Voltar ao FAQ
-                </a>
+            <div class="text-muted">
+                Use <span class="placeholder-code">{{ exemplo_placeholder }}</span> nas respostas do FAQ.
             </div>
+        </div>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
+        <div class="d-flex gap-2">
+            <a href="/buscar/perguntas" class="btn btn-outline-secondary">
+                Voltar ao FAQ
+            </a>
 
-                    <h1 class="h3 mb-4">
-                        Cadastrar variável
-                    </h1>
-
-                    <form @submit.prevent="cadastrarVariavel">
-
-                        <div class="mb-3">
-                            <label for="nome" class="form-label">
-                                Nome
-                            </label>
-
-                            <input
-                                type="text"
-                                id="nome"
-                                class="form-control"
-                                v-model="form.nome"
-                                placeholder="Ex.: LINK_MATRICULA"
-                                required
-                            >
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="valor" class="form-label">
-                                Valor
-                            </label>
-
-                            <input
-                                type="text"
-                                id="valor"
-                                class="form-control"
-                                v-model="form.valor"
-                                placeholder="Ex.: https://exemplo.com/matricula"
-                                required
-                            >
-                        </div>
-
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
-                            :disabled="salvando"
-                        >
-                            {{ salvando ? 'Salvando...' : 'Cadastrar' }}
-                        </button>
-
-                    </form>
-
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-
-                    <h2 class="h4 mb-4">
-                        Variáveis cadastradas
-                    </h2>
-
-                    <div
-                        v-if="carregando"
-                        class="text-muted"
-                    >
-                        Carregando...
-                    </div>
-
-                    <div
-                        v-else-if="variaveis.length === 0"
-                        class="text-muted"
-                    >
-                        Nenhuma variável cadastrada.
-                    </div>
-
-                    <div
-                        v-else
-                        class="table-responsive"
-                    >
-                        <table class="table table-hover align-middle mb-0">
-
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Valor</th>
-                                    <th class="text-end">Ações</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                <tr
-                                    v-for="variavel in variaveis"
-                                    :key="variavel.id"
-                                >
-                                    <td>
-                                        <span style="color: #d63384;">{{ variavel.nome }}</span>
-                                    </td>
-
-                                    <td>
-                                        {{ variavel.valor }}
-                                    </td>
-
-                                    <td class="text-end">
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-primary"
-                                            @click="abrirModalEdicao(variavel)"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#modalEditarVariavel"
-                                        >
-                                            Editar valor
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-
-                        </table>
-                    </div>
-
-                </div>
-            </div>
-
+            <button
+                type="button"
+                class="btn btn-primary"
+                :disabled="salvando"
+                @click="salvarTabela"
+            >
+                {{ salvando ? 'Salvando...' : 'Salvar variaveis' }}
+            </button>
         </div>
     </div>
 
-    <div
-        class="modal fade"
-        id="modalEditarVariavel"
-        tabindex="-1"
-        aria-labelledby="modalEditarVariavelLabel"
-        aria-hidden="true"
-    >
-        <div class="modal-dialog">
-            <div class="modal-content">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="nova-linha" class="form-label">
+                        Nova linha
+                    </label>
 
-                <form @submit.prevent="salvarEdicaoVariavel">
-                    <div class="modal-header">
-                        <h2 class="modal-title fs-5" id="modalEditarVariavelLabel">
-                            Editar valor da variável
-                        </h2>
+                    <div class="input-group">
+                        <input
+                            id="nova-linha"
+                            type="text"
+                            class="form-control"
+                            v-model="novaLinha"
+                            placeholder="Ex.: curso_ads"
+                            @keyup.enter="adicionarLinha"
+                        >
 
                         <button
                             type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Fechar"
-                        ></button>
+                            class="btn btn-outline-primary"
+                            @click="adicionarLinha"
+                        >
+                            Adicionar linha
+                        </button>
                     </div>
+                </div>
 
-                    <div class="modal-body">
+                <div class="col-md-4">
+                    <label for="nova-coluna" class="form-label">
+                        Nova coluna
+                    </label>
 
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Nome
-                            </label>
+                    <div class="input-group">
+                        <input
+                            id="nova-coluna"
+                            type="text"
+                            class="form-control"
+                            v-model="novaColuna"
+                            placeholder="Ex.: preco_cheio"
+                            @keyup.enter="adicionarColuna"
+                        >
 
-                            <input
-                                type="text"
-                                class="form-control"
-                                v-model="editForm.nome"
-                                readonly
-                                disabled
-
-                            >
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">
-                                Valor
-                            </label>
-
-                            <input
-                                type="text"
-                                class="form-control"
-                                v-model="editForm.valor"
-                                required
-                            >
-                        </div>
-
-                    </div>
-
-                    <div class="modal-footer">
                         <button
                             type="button"
-                            class="btn btn-secondary"
-                            data-bs-dismiss="modal"
+                            class="btn btn-outline-primary"
+                            @click="adicionarColuna"
                         >
-                            Cancelar
-                        </button>
-
-                        <button
-                            type="submit"
-                            class="btn btn-primary"
-                        >
-                            Salvar alteração
+                            Adicionar coluna
                         </button>
                     </div>
-                </form>
+                </div>
 
+                <div class="col-md-4">
+                    <label for="filtro" class="form-label">
+                        Buscar
+                    </label>
+
+                    <input
+                        id="filtro"
+                        type="text"
+                        class="form-control"
+                        v-model="filtro"
+                        placeholder="Filtrar por linha, coluna ou valor"
+                    >
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+                <div>
+                    <h2 class="h5 mb-1">
+                        Tabela de variaveis agrupadas
+                    </h2>
+
+                    <div class="text-muted">
+                        Cada celula gera uma variavel no formato <span class="placeholder-code" v-pre>{{linha.coluna}}</span>.
+                    </div>
+                </div>
+
+                <div class="text-muted">
+                    {{ linhas.length }} linhas, {{ colunas.length }} colunas
+                </div>
+            </div>
+
+            <div
+                v-if="carregando"
+                class="text-muted"
+            >
+                Carregando...
+            </div>
+
+            <div
+                v-else-if="linhas.length === 0 || colunas.length === 0"
+                class="alert alert-secondary mb-0"
+            >
+                Adicione pelo menos uma linha e uma coluna para comecar.
+            </div>
+
+            <div
+                v-else
+                class="table-responsive"
+            >
+                <table class="table table-bordered table-hover variables-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                Linha
+                            </th>
+
+                            <th
+                                v-for="(coluna, colunaIndex) in colunas"
+                                :key="coluna"
+                            >
+                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-sm"
+                                        v-model="colunas[colunaIndex]"
+                                        @focus="iniciarEdicaoColuna(coluna)"
+                                        @change="normalizarColuna(colunaIndex)"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        @click="removerColuna(coluna)"
+                                        title="Remover coluna"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            </th>
+
+                            <th class="text-end">
+                                Acoes
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr
+                            v-for="linha in linhasFiltradas"
+                            :key="linha.nome"
+                        >
+                            <td>
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm mb-2"
+                                    v-model="linha.nome"
+                                    @change="normalizarLinha(linha)"
+                                >
+
+                                <span class="placeholder-code" @click="copiarTexto(linha.nome)">
+                                    {{ linha.nome }}
+                                </span>
+                            </td>
+
+                            <td
+                                v-for="coluna in colunas"
+                                :key="linha.nome + '-' + coluna"
+                            >
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm table-input mb-2"
+                                    v-model="linha.valores[coluna]"
+                                >
+
+                                <span
+                                    
+                                    @click="copiarTexto(placeholderAgrupado(linha.nome, coluna))"
+                                >
+                                    {{ placeholderAgrupado(linha.nome, coluna) }}
+                                </span>
+                            </td>
+
+                            <td class="text-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    @click="removerLinha(linha)"
+                                >
+                                    Remover
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row justify-content-between gap-2 mb-3">
+                <div>
+                    <h2 class="h5 mb-1">
+                        Variaveis simples
+                    </h2>
+
+                    <div class="text-muted">
+                        Para valores que continuam sendo usados como <span class="placeholder-code" v-pre>{{nome_da_variavel}}</span>.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <input
+                        type="text"
+                        class="form-control"
+                        v-model="novoSimples.nome"
+                        placeholder="Nome"
+                    >
+                </div>
+
+                <div class="col-md-6">
+                    <input
+                        type="text"
+                        class="form-control"
+                        v-model="novoSimples.valor"
+                        placeholder="Valor"
+                        @keyup.enter="adicionarSimples"
+                    >
+                </div>
+
+                <div class="col-md-2 d-grid">
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        @click="adicionarSimples"
+                    >
+                        Adicionar
+                    </button>
+                </div>
+            </div>
+
+            <div
+                v-if="simples.length === 0"
+                class="text-muted"
+            >
+                Nenhuma variavel simples cadastrada.
+            </div>
+
+            <div
+                v-else
+                class="table-responsive"
+            >
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Valor</th>
+                            <th>Como usar</th>
+                            <th class="text-end">Acoes</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr
+                            v-for="variavel in simples"
+                            :key="variavel.nome"
+                        >
+                            <td>
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    v-model="variavel.nome"
+                                    @change="normalizarSimples(variavel)"
+                                >
+                            </td>
+
+                            <td>
+                                <input
+                                    type="text"
+                                    class="form-control form-control-sm"
+                                    v-model="variavel.valor"
+                                >
+                            </td>
+
+                            <td>
+                                <span
+                                    @click="copiarTexto(placeholderSimples(variavel.nome))"
+                                >
+                                    {{ placeholderSimples(variavel.nome) }}
+                                </span>
+                            </td>
+
+                            <td class="text-end">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger"
+                                    @click="removerSimples(variavel)"
+                                >
+                                    Remover
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -231,7 +387,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <script src="/js/cadastroVariaveis.js"></script>
 
 </body>
