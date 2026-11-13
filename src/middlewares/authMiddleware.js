@@ -14,7 +14,7 @@ export async function autenticar(req, res, next) {
             id: usuarioToken.id,
             ativo: true
         },
-        attributes: ['id', 'nome', 'login']
+        attributes: ['id', 'nome', 'login', 'tipo']
     });
 
     if (!usuario) {
@@ -25,6 +25,20 @@ export async function autenticar(req, res, next) {
     res.locals.usuario = req.usuario;
 
     next();
+}
+
+export function exigirAdmin(req, res, next) {
+    if (req.usuario?.tipo === 'admin') {
+        return next();
+    }
+
+    if (req.method === 'GET' && req.accepts('html')) {
+        return res.redirect('/buscar/perguntas');
+    }
+
+    return res.status(403).json({
+        erro: 'Acesso permitido apenas para administradores.'
+    });
 }
 
 export function redirecionarSeAutenticado(req, res, next) {

@@ -3,7 +3,7 @@ import { gerarHashSenha, validarSenha } from '../utils/senha.js';
 
 async function carregarUsuarios() {
     return Usuario.findAll({
-        attributes: ['id', 'nome', 'login', 'ativo', 'createdAt'],
+        attributes: ['id', 'nome', 'login', 'tipo', 'ativo', 'createdAt'],
         order: [['nome', 'ASC']]
     });
 }
@@ -19,11 +19,15 @@ export async function usuarioForm(req, res) {
 }
 
 export async function criarUsuario(req, res) {
-    const { nome, login, senha } = req.body;
+    const { nome, login, senha, tipo } = req.body;
 
     try {
         if (!nome || !login || !senha) {
             throw new Error('Nome, login e senha são obrigatórios.');
+        }
+
+        if (!['admin', 'comum'].includes(tipo)) {
+            throw new Error('Tipo de usuario invalido.');
         }
 
         if (senha.length < 6) {
@@ -34,6 +38,7 @@ export async function criarUsuario(req, res) {
             nome,
             login,
             senhaHash: gerarHashSenha(senha),
+            tipo,
             ativo: true
         });
 

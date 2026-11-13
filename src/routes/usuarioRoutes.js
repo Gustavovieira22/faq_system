@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { alterarMinhaSenha, criarUsuario, usuarioForm } from '../controllers/usuarioController.js';
+import { exigirAdmin } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
-router.get('/usuarios', usuarioForm);
-router.post('/usuarios', criarUsuario);
-router.post('/usuarios/minha-senha', alterarMinhaSenha);
+router.get('/usuarios', exigirAdmin, usuarioForm);
+router.post('/usuarios', exigirAdmin, criarUsuario);
+router.post('/usuarios/minha-senha', exigirAdmin, alterarMinhaSenha);
 
 export default router;

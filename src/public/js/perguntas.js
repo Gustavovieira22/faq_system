@@ -8,6 +8,7 @@ createApp({
             perguntas: [],
             busca: '',
             carregando: true,
+            isAdmin: Boolean(window.USUARIO_ADMIN),
             salvandoEdicao: false,
             form: {
                 titulo: '',
@@ -45,6 +46,10 @@ createApp({
 
     methods: {
         async cadastrarPergunta() {
+            if (!this.isAdmin) {
+                return;
+            }
+
             try {
                 this.form.resposta = this.editorResposta.root.innerHTML;
                 const response = await fetch('/api/perguntas', {
@@ -81,6 +86,10 @@ createApp({
             }
         },
         abrirModalEdicao(pergunta) {
+            if (!this.isAdmin) {
+                return;
+            }
+
             this.editForm = {
                 id: pergunta.id,
                 titulo: pergunta.titulo,
@@ -94,6 +103,10 @@ createApp({
             modal.show();
         },
         async salvarEdicaoPergunta() {
+            if (!this.isAdmin) {
+                return;
+            }
+
             this.salvandoEdicao = true;
 
             try {
@@ -240,6 +253,10 @@ createApp({
 
     async mounted() {
         this.getPerguntas();
+
+        if (!this.isAdmin) {
+            return;
+        }
 
         this.editorResposta = new Quill('#editor-resposta', {
             theme: 'snow',

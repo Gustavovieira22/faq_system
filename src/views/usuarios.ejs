@@ -43,19 +43,27 @@
 
                     <form method="post" action="/usuarios">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="nome" class="form-label">Nome</label>
                                 <input type="text" id="nome" name="nome" class="form-control" required>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="login" class="form-label">Login</label>
                                 <input type="text" id="login" name="login" class="form-control" required>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="senha" class="form-label">Senha</label>
                                 <input type="password" id="senha" name="senha" class="form-control" minlength="6" required>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="tipo" class="form-label">Tipo</label>
+                                <select id="tipo" name="tipo" class="form-select" required>
+                                    <option value="comum">Comum</option>
+                                    <option value="admin">Admin</option>
+                                </select>
                             </div>
                         </div>
 
@@ -100,6 +108,7 @@
                                 <tr>
                                     <th>Nome</th>
                                     <th>Login</th>
+                                    <th>Tipo</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -109,6 +118,11 @@
                                     <tr>
                                         <td><%= usuario.nome %></td>
                                         <td><code><%= usuario.login %></code></td>
+                                        <td>
+                                            <span class="badge text-bg-<%= usuario.tipo === 'admin' ? 'primary' : 'secondary' %>">
+                                                <%= usuario.tipo === 'admin' ? 'Admin' : 'Comum' %>
+                                            </span>
+                                        </td>
                                         <td>
                                             <span class="badge text-bg-<%= usuario.ativo ? 'success' : 'secondary' %>">
                                                 <%= usuario.ativo ? 'Ativo' : 'Inativo' %>

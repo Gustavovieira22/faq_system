@@ -1,14 +1,30 @@
 import sequelize from '../config/database.js';
+import { DataTypes } from 'sequelize';
 
 import '../models/PerguntaModel.js';
 import '../models/VariavelModel.js';
 import Usuario from '../models/UsuarioModel.js';
 import { gerarHashSenha } from '../utils/senha.js';
 
+async function garantirColunaTipoUsuario() {
+    const queryInterface = sequelize.getQueryInterface();
+    const tabelaUsuarios = Usuario.getTableName();
+    const colunas = await queryInterface.describeTable(tabelaUsuarios);
+
+    if (!colunas.tipo) {
+        await queryInterface.addColumn(tabelaUsuarios, 'tipo', {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: 'admin'
+        });
+    }
+}
+
 try {
     await sequelize.authenticate();
 
     await sequelize.sync();
+    await garantirColunaTipoUsuario();
 
     const totalUsuarios = await Usuario.count();
 
@@ -20,6 +36,7 @@ try {
             nome: 'Administrador',
             login: loginInicial,
             senhaHash: gerarHashSenha(senhaInicial),
+            tipo: 'admin',
             ativo: true
         });
 

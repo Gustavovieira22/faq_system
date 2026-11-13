@@ -12,7 +12,10 @@ export async function listarPerguntas(req, res) {
         const resultado = perguntas.map(pergunta => {
             const dados = pergunta.toJSON();
 
-            dados.respostaOriginal = dados.resposta;
+            if (req.usuario?.tipo === 'admin') {
+                dados.respostaOriginal = dados.resposta;
+            }
+
             dados.resposta = substituirVariaveis( dados.resposta, variaveis);
 
             return dados;
@@ -88,5 +91,7 @@ export async function atualizarPergunta(req, res) {
 }
 
 export async function perguntaBusca(req, res) {
-    res.render('perguntas');
+    res.render('perguntas', {
+        isAdmin: req.usuario?.tipo === 'admin'
+    });
 }
