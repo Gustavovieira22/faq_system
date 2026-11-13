@@ -13,10 +13,17 @@ createApp({
                 nome: '',
                 valor: ''
             },
+            proximoId: 1,
             colunaEmEdicao: '',
             filtro: '',
+            filtroSimples: '',
             carregando: true,
             salvando: false,
+            alteracoesPendentes: false,
+            estadoSalvo: '',
+            nomeVariavelOrdem: '__ORDEM_VARIAVEIS__',
+            arrastoLinhaId: null,
+            arrastoColunaIndex: null,
             exemplo_placeholder: '{{curso_ads.preco_cheio}}'
         };
     },
@@ -41,6 +48,43 @@ createApp({
                         || valor.toLowerCase().includes(termo);
                 });
             });
+        },
+
+        simplesFiltradas() {
+            const termo = this.filtroSimples.trim().toLowerCase();
+
+            if (!termo) {
+                return this.simples;
+            }
+
+            return this.simples.filter(variavel => (
+                variavel.nome.toLowerCase().includes(termo)
+                || String(variavel.valor || '').toLowerCase().includes(termo)
+                || this.placeholderSimples(variavel.nome).toLowerCase().includes(termo)
+            ));
+        }
+    },
+
+    watch: {
+        linhas: {
+            deep: true,
+            handler() {
+                this.verificarAlteracoesPendentes();
+            }
+        },
+
+        colunas: {
+            deep: true,
+            handler() {
+                this.verificarAlteracoesPendentes();
+            }
+        },
+
+        simples: {
+            deep: true,
+            handler() {
+                this.verificarAlteracoesPendentes();
+            }
         }
     },
 
@@ -63,15 +107,102 @@ createApp({
             return `{{${nome}}}`;
         },
 
+        criarId(prefixo) {
+            const id = `${prefixo}-${this.proximoId}`;
+            this.proximoId += 1;
+
+            return id;
+        },
+
+        nomeReservado(nome) {
+            return nome === this.nomeVariavelOrdem;
+        },
+
+        lerOrdemSalva(variaveis) {
+            const variavelOrdem = variaveis.find(variavel => (
+                variavel.nome === this.nomeVariavelOrdem
+            ));
+
+            if (!variavelOrdem) {
+                return {
+                    linhas: [],
+                    colunas: [],
+                    simples: []
+                };
+            }
+
+            try {
+                const ordem = JSON.parse(variavelOrdem.valor);
+
+                return {
+                    linhas: Array.isArray(ordem.linhas) ? ordem.linhas : [],
+                    colunas: Array.isArray(ordem.colunas) ? ordem.colunas : [],
+                    simples: Array.isArray(ordem.simples) ? ordem.simples : []
+                };
+            } catch (error) {
+                return {
+                    linhas: [],
+                    colunas: [],
+                    simples: []
+                };
+            }
+        },
+
+        ordenarPorOrdem(itens, ordem, obterNome) {
+            const posicoes = new Map(ordem.map((nome, index) => [nome, index]));
+
+            return [...itens].sort((a, b) => {
+                const nomeA = obterNome(a);
+                const nomeB = obterNome(b);
+                const posicaoA = posicoes.has(nomeA) ? posicoes.get(nomeA) : Number.MAX_SAFE_INTEGER;
+                const posicaoB = posicoes.has(nomeB) ? posicoes.get(nomeB) : Number.MAX_SAFE_INTEGER;
+
+                if (posicaoA !== posicaoB) {
+                    return posicaoA - posicaoB;
+                }
+
+                return nomeA.localeCompare(nomeB);
+            });
+        },
+
+        serializarEstadoEditavel() {
+            return JSON.stringify(this.montarPayload());
+        },
+
+        registrarEstadoSalvo() {
+            this.estadoSalvo = this.serializarEstadoEditavel();
+            this.alteracoesPendentes = false;
+        },
+
+        verificarAlteracoesPendentes() {
+            if (this.carregando || !this.estadoSalvo) {
+                return;
+            }
+
+            this.alteracoesPendentes = this.serializarEstadoEditavel() !== this.estadoSalvo;
+        },
+
         montarTabela(variaveis) {
-            const linhasMap = new Map();
-            const colunasSet = new Set();
+            const ordemSalva = this.lerOrdemSalva(variaveis);
+            const linhasMap = new Map(ordemSalva.linhas.map(nome => [
+                nome,
+                {
+                    _id: this.criarId('linha'),
+                    nome,
+                    valores: {}
+                }
+            ]));
+            const colunasSet = new Set(ordemSalva.colunas);
             const simples = [];
 
             variaveis.forEach(variavel => {
                 const nome = String(variavel.nome || '').trim();
                 const valor = String(variavel.valor ?? '');
                 const partes = nome.split('.');
+
+                if (this.nomeReservado(nome)) {
+                    return;
+                }
 
                 if (partes.length === 2 && partes[0] && partes[1]) {
                     const linhaNome = partes[0];
@@ -81,6 +212,7 @@ createApp({
 
                     if (!linhasMap.has(linhaNome)) {
                         linhasMap.set(linhaNome, {
+                            _id: this.criarId('linha'),
                             nome: linhaNome,
                             valores: {}
                         });
@@ -91,13 +223,24 @@ createApp({
                 }
 
                 if (nome) {
-                    simples.push({ nome, valor });
+                    simples.push({
+                        _id: this.criarId('simples'),
+                        nome,
+                        valor
+                    });
                 }
             });
 
-            this.colunas = Array.from(colunasSet).sort();
-            this.linhas = Array.from(linhasMap.values())
-                .sort((a, b) => a.nome.localeCompare(b.nome))
+            this.colunas = this.ordenarPorOrdem(
+                Array.from(colunasSet),
+                ordemSalva.colunas,
+                coluna => coluna
+            );
+            this.linhas = this.ordenarPorOrdem(
+                Array.from(linhasMap.values()),
+                ordemSalva.linhas,
+                linha => linha.nome
+            )
                 .map(linha => {
                     this.colunas.forEach(coluna => {
                         if (linha.valores[coluna] === undefined) {
@@ -107,7 +250,11 @@ createApp({
 
                     return linha;
                 });
-            this.simples = simples.sort((a, b) => a.nome.localeCompare(b.nome));
+            this.simples = this.ordenarPorOrdem(
+                simples,
+                ordemSalva.simples,
+                variavel => variavel.nome
+            );
         },
 
         async carregarVariaveis() {
@@ -120,6 +267,9 @@ createApp({
 
                 this.variaveis = await response.json();
                 this.montarTabela(this.variaveis);
+                this.$nextTick(() => {
+                    this.registrarEstadoSalvo();
+                });
 
             } catch (error) {
                 console.error(error);
@@ -143,14 +293,22 @@ createApp({
                 return;
             }
 
+            if (this.nomeReservado(nome)) {
+                alert('Esse nome e reservado pelo sistema.');
+                return;
+            }
+
             const valores = {};
 
             this.colunas.forEach(coluna => {
                 valores[coluna] = '';
             });
 
-            this.linhas.push({ nome, valores });
-            this.linhas.sort((a, b) => a.nome.localeCompare(b.nome));
+            this.linhas.push({
+                _id: this.criarId('linha'),
+                nome,
+                valores
+            });
             this.novaLinha = '';
         },
 
@@ -167,8 +325,12 @@ createApp({
                 return;
             }
 
+            if (this.nomeReservado(nome)) {
+                alert('Esse nome e reservado pelo sistema.');
+                return;
+            }
+
             this.colunas.push(nome);
-            this.colunas.sort();
 
             this.linhas.forEach(linha => {
                 linha.valores[nome] = '';
@@ -206,6 +368,11 @@ createApp({
                 return;
             }
 
+            if (this.nomeReservado(nome)) {
+                alert('Esse nome e reservado pelo sistema.');
+                return;
+            }
+
             const duplicada = this.linhas.some(item => item !== linha && item.nome === nome);
 
             if (duplicada) {
@@ -230,6 +397,12 @@ createApp({
                 return;
             }
 
+            if (this.nomeReservado(nome)) {
+                alert('Esse nome e reservado pelo sistema.');
+                this.colunas[indice] = original;
+                return;
+            }
+
             const duplicada = this.colunas.some((coluna, colunaIndice) => (
                 colunaIndice !== indice && coluna === nome
             ));
@@ -242,13 +415,12 @@ createApp({
 
             if (original !== nome) {
                 this.linhas.forEach(linha => {
-                    linha.valores[nome] = linha.valores[original] || '';
+                    linha.valores[nome] = linha.valores[original] ?? '';
                     delete linha.valores[original];
                 });
             }
 
             this.colunas[indice] = nome;
-            this.colunas.sort();
             this.colunaEmEdicao = '';
         },
 
@@ -266,13 +438,21 @@ createApp({
                 return;
             }
 
+            if (this.nomeReservado(nome)) {
+                alert('Esse nome e reservado pelo sistema.');
+                return;
+            }
+
             if (nome.includes('.')) {
                 alert('Variaveis simples nao usam ponto no nome.');
                 return;
             }
 
-            this.simples.push({ nome, valor });
-            this.simples.sort((a, b) => a.nome.localeCompare(b.nome));
+            this.simples.push({
+                _id: this.criarId('simples'),
+                nome,
+                valor
+            });
             this.novoSimples = {
                 nome: '',
                 valor: ''
@@ -292,6 +472,11 @@ createApp({
                 return;
             }
 
+            if (this.nomeReservado(nome)) {
+                alert('Esse nome e reservado pelo sistema.');
+                return;
+            }
+
             const duplicada = this.simples.some(item => item !== variavel && item.nome === nome);
 
             if (duplicada) {
@@ -302,8 +487,63 @@ createApp({
             variavel.nome = nome;
         },
 
+        moverItem(lista, origem, destino) {
+            if (!Number.isInteger(origem) || origem === -1 || destino === -1 || origem === destino) {
+                return;
+            }
+
+            const [item] = lista.splice(origem, 1);
+            lista.splice(destino, 0, item);
+        },
+
+        iniciarArrastoLinha(linha, event) {
+            this.arrastoLinhaId = linha._id;
+
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', linha._id);
+            }
+        },
+
+        finalizarArrastoLinha() {
+            this.arrastoLinhaId = null;
+        },
+
+        soltarLinha(linhaDestino) {
+            const origem = this.linhas.findIndex(linha => linha._id === this.arrastoLinhaId);
+            const destino = this.linhas.findIndex(linha => linha._id === linhaDestino._id);
+
+            this.moverItem(this.linhas, origem, destino);
+            this.finalizarArrastoLinha();
+        },
+
+        iniciarArrastoColuna(indice, event) {
+            this.arrastoColunaIndex = indice;
+
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', String(indice));
+            }
+        },
+
+        finalizarArrastoColuna() {
+            this.arrastoColunaIndex = null;
+        },
+
+        soltarColuna(indiceDestino) {
+            this.moverItem(this.colunas, this.arrastoColunaIndex, indiceDestino);
+            this.finalizarArrastoColuna();
+        },
+
         montarPayload() {
-            const variaveis = [];
+            const variaveis = [{
+                nome: this.nomeVariavelOrdem,
+                valor: JSON.stringify({
+                    linhas: this.linhas.map(linha => this.normalizarIdentificador(linha.nome)).filter(Boolean),
+                    colunas: this.colunas.map(coluna => this.normalizarIdentificador(coluna)).filter(Boolean),
+                    simples: this.simples.map(variavel => this.normalizarIdentificador(variavel.nome)).filter(Boolean)
+                })
+            }];
 
             this.simples.forEach(variavel => {
                 const nome = this.normalizarIdentificador(variavel.nome);
@@ -355,6 +595,9 @@ createApp({
 
                 this.variaveis = data;
                 this.montarTabela(data);
+                this.$nextTick(() => {
+                    this.registrarEstadoSalvo();
+                });
                 alert('Variaveis salvas com sucesso.');
 
             } catch (error) {

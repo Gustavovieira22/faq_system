@@ -44,6 +44,16 @@
         .table-input {
             min-width: 160px;
         }
+
+        .drag-handle {
+            cursor: grab;
+            line-height: 1;
+            min-width: 2rem;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -75,6 +85,14 @@
                 {{ salvando ? 'Salvando...' : 'Salvar variaveis' }}
             </button>
         </div>
+    </div>
+
+    <div
+        v-if="alteracoesPendentes"
+        class="alert alert-danger py-2 mb-4"
+        role="alert"
+    >
+        Atencao: voce tem alteracoes nao salvas. Clique em Salvar variaveis antes de sair da pagina.
     </div>
 
     <div class="card shadow-sm mb-4">
@@ -192,9 +210,22 @@
 
                             <th
                                 v-for="(coluna, colunaIndex) in colunas"
-                                :key="coluna"
+                                :key="'coluna-' + colunaIndex"
+                                @dragover.prevent
+                                @drop="soltarColuna(colunaIndex)"
                             >
                                 <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-secondary drag-handle"
+                                        draggable="true"
+                                        title="Arrastar coluna"
+                                        @dragstart="iniciarArrastoColuna(colunaIndex, $event)"
+                                        @dragend="finalizarArrastoColuna"
+                                    >
+                                        ::
+                                    </button>
+
                                     <input
                                         type="text"
                                         class="form-control form-control-sm"
@@ -223,15 +254,30 @@
                     <tbody>
                         <tr
                             v-for="linha in linhasFiltradas"
-                            :key="linha.nome"
+                            :key="linha._id"
+                            @dragover.prevent
+                            @drop="soltarLinha(linha)"
                         >
                             <td>
-                                <input
-                                    type="text"
-                                    class="form-control form-control-sm mb-2"
-                                    v-model="linha.nome"
-                                    @change="normalizarLinha(linha)"
-                                >
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-secondary drag-handle"
+                                        draggable="true"
+                                        title="Arrastar linha"
+                                        @dragstart="iniciarArrastoLinha(linha, $event)"
+                                        @dragend="finalizarArrastoLinha"
+                                    >
+                                        ::
+                                    </button>
+
+                                    <input
+                                        type="text"
+                                        class="form-control form-control-sm"
+                                        v-model="linha.nome"
+                                        @change="normalizarLinha(linha)"
+                                    >
+                                </div>
 
                                 <span class="placeholder-code" @click="copiarTexto(linha.nome)">
                                     {{ linha.nome }}
@@ -240,7 +286,7 @@
 
                             <td
                                 v-for="coluna in colunas"
-                                :key="linha.nome + '-' + coluna"
+                                :key="linha._id + '-' + coluna"
                             >
                                 <input
                                     type="text"
@@ -249,7 +295,7 @@
                                 >
 
                                 <span
-                                    
+                                    class="placeholder-code"
                                     @click="copiarTexto(placeholderAgrupado(linha.nome, coluna))"
                                 >
                                     {{ placeholderAgrupado(linha.nome, coluna) }}
@@ -283,6 +329,20 @@
                     <div class="text-muted">
                         Para valores que continuam sendo usados como <span class="placeholder-code" v-pre>{{nome_da_variavel}}</span>.
                     </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <label for="filtro-simples" class="form-label">
+                        Buscar simples
+                    </label>
+
+                    <input
+                        id="filtro-simples"
+                        type="text"
+                        class="form-control"
+                        v-model="filtroSimples"
+                        placeholder="Filtrar por nome, valor ou uso"
+                    >
                 </div>
             </div>
 
@@ -340,8 +400,8 @@
 
                     <tbody>
                         <tr
-                            v-for="variavel in simples"
-                            :key="variavel.nome"
+                            v-for="variavel in simplesFiltradas"
+                            :key="variavel._id"
                         >
                             <td>
                                 <input
@@ -362,6 +422,7 @@
 
                             <td>
                                 <span
+                                    class="placeholder-code"
                                     @click="copiarTexto(placeholderSimples(variavel.nome))"
                                 >
                                     {{ placeholderSimples(variavel.nome) }}
