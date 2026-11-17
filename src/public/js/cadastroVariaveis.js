@@ -1,7 +1,7 @@
 const { createApp } = Vue;
 
 //quantidade maxima de itens exibidos sem filtro ativo (os demais aparecem pela busca)
-const LIMITE_EXIBICAO = 20;
+const LIMITE_EXIBICAO = 10;
 
 createApp({
     data() {
@@ -51,37 +51,69 @@ createApp({
     },
 
     computed: {
-        linhasFiltradas() {
+        //resultado da busca da tabela agrupada: o nome da coluna so entra como
+        //criterio quando nada foi encontrado pelo nome da linha ou pelo valor
+        //das celulas; caso contrario um termo que existe no nome de uma coluna
+        //(ex.: "EAD_" em "EAD_port_30") faria todas as linhas aparecerem na busca
+        resultadoBuscaLinhas() {
             const termo = this.normalizarTexto(this.filtro);
 
-            //sem filtro: limita a quantidade de linhas exibidas na tela
             if (!termo) {
-                const visiveis = this.linhas.slice(0, LIMITE_EXIBICAO);
-                const linhaAdicionada = this.linhas.find(linha => (
-                    linha._id === this.linhaAdicionadaId
-                ));
-
-                //garante que a linha recem-criada apareca mesmo fora da janela exibida
-                if (linhaAdicionada && !visiveis.includes(linhaAdicionada)) {
-                    visiveis.push(linhaAdicionada);
-                }
-
-                return visiveis;
+                return {
+                    termo: '',
+                    coluna: '',
+                    linhas: null
+                };
             }
 
+            const linhasEncontradas = this.linhas.filter(linha => (
+                this.normalizarTexto(linha.nome).includes(termo)
+                || this.colunas.some(coluna => (
+                    this.normalizarTexto(linha.valores[coluna]).includes(termo)
+                ))
+            ));
+
+            if (linhasEncontradas.length) {
+                return {
+                    termo,
+                    coluna: '',
+                    linhas: linhasEncontradas
+                };
+            }
+
+            //sem resultado por linha/valor: busca pelo nome da coluna,
+            //exibindo a tabela inteira para facilitar o preenchimento da coluna
+            const colunaEncontrada = this.colunas.find(coluna => (
+                this.normalizarTexto(coluna).includes(termo)
+            )) || '';
+
+            return {
+                termo,
+                coluna: colunaEncontrada,
+                linhas: colunaEncontrada ? this.linhas.slice() : []
+            };
+        },
+
+        linhasFiltradas() {
+            const busca = this.resultadoBuscaLinhas;
+
             //com filtro: exibe todos os resultados (ignora acentos e maiusculas)
-            return this.linhas.filter(linha => {
-                if (this.normalizarTexto(linha.nome).includes(termo)) {
-                    return true;
-                }
+            if (busca.linhas) {
+                return busca.linhas;
+            }
 
-                return this.colunas.some(coluna => {
-                    const valor = linha.valores[coluna] || '';
+            //sem filtro: limita a quantidade de linhas exibidas na tela
+            const visiveis = this.linhas.slice(0, LIMITE_EXIBICAO);
+            const linhaAdicionada = this.linhas.find(linha => (
+                linha._id === this.linhaAdicionadaId
+            ));
 
-                    return this.normalizarTexto(coluna).includes(termo)
-                        || this.normalizarTexto(valor).includes(termo);
-                });
-            });
+            //garante que a linha recem-criada apareca mesmo fora da janela exibida
+            if (linhaAdicionada && !visiveis.includes(linhaAdicionada)) {
+                visiveis.push(linhaAdicionada);
+            }
+
+            return visiveis;
         },
 
         simplesFiltradas() {
@@ -101,10 +133,17 @@ createApp({
         },
 
         avisoLinhas() {
+            const { termo, coluna } = this.resultadoBuscaLinhas;
             const total = this.linhas.length;
             const exibidas = this.linhasFiltradas.length;
 
-            if (this.normalizarTexto(this.filtro)) {
+            if (termo && coluna) {
+                return exibidas === 1
+                    ? `1 linha encontrada pela coluna "${coluna}".`
+                    : `${exibidas} linhas encontradas pela coluna "${coluna}".`;
+            }
+
+            if (termo) {
                 return exibidas === 1
                     ? '1 linha encontrada para a busca.'
                     : `${exibidas} linhas encontradas para a busca.`;
