@@ -169,6 +169,7 @@
                             <th>Login</th>
                             <th>Tipo</th>
                             <th>Status</th>
+                            <th class="text-end col-acoes">Ações</th>
                         </tr>
                     </thead>
 
@@ -187,6 +188,24 @@
                                         <%= usuario.ativo ? 'Ativo' : 'Inativo' %>
                                     </span>
                                 </td>
+                                <td class="text-end col-acoes">
+                                    <% if (usuario.tipo === 'comum') { %>
+                                        <form
+                                            method="post"
+                                            action="/usuarios/<%= usuario.id %>/excluir"
+                                            class="d-inline"
+                                            data-confirmar-exclusao="<%= usuario.nome %>"
+                                        >
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    <% } else { %>
+                                        <span class="text-muted small" title="Administradores não podem ser excluídos">
+                                            &mdash;
+                                        </span>
+                                    <% } %>
+                                </td>
                             </tr>
                         <% }) %>
                     </tbody>
@@ -196,6 +215,18 @@
     </div>
 
 </main>
+
+<script>
+    document.querySelectorAll('form[data-confirmar-exclusao]').forEach((formulario) => {
+        formulario.addEventListener('submit', (evento) => {
+            const nome = formulario.dataset.confirmarExclusao;
+
+            if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) {
+                evento.preventDefault();
+            }
+        });
+    });
+</script>
 
 </body>
 </html>

@@ -61,6 +61,42 @@ export async function criarUsuario(req, res) {
     }
 }
 
+export async function excluirUsuario(req, res) {
+    const { id } = req.params;
+
+    try {
+        const usuario = await Usuario.findByPk(id);
+
+        if (!usuario) {
+            throw new Error('Usuário não encontrado.');
+        }
+
+        //apenas usuarios comuns podem ser excluidos (admins nunca sao apagados)
+        if (usuario.tipo !== 'comum') {
+            throw new Error('Apenas usuários comuns podem ser excluídos.');
+        }
+
+        await usuario.destroy();
+
+        const usuarios = await carregarUsuarios();
+
+        res.render('usuarios', {
+            usuarios,
+            erro: null,
+            sucesso: 'Usuário excluído com sucesso.'
+        });
+
+    } catch (error) {
+        const usuarios = await carregarUsuarios();
+
+        res.status(400).render('usuarios', {
+            usuarios,
+            erro: error.message || 'Erro ao excluir usuário.',
+            sucesso: null
+        });
+    }
+}
+
 export async function alterarMinhaSenha(req, res) {
     const { senhaAtual, novaSenha } = req.body;
 

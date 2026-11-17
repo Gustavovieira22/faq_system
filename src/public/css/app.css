@@ -578,6 +578,18 @@ a:focus-visible {
     .simple-table {
         min-width: 620px;
     }
+
+    /* mantem o botao de acao visivel enquanto a tabela rola na horizontal */
+    .simple-table .col-acoes {
+        background: var(--app-surface);
+        position: sticky;
+        right: 0;
+        z-index: 1;
+    }
+
+    .simple-table tbody tr:hover .col-acoes {
+        background: #f8fafc;
+    }
 }
 
 @media (max-width: 575.98px) {
