@@ -153,6 +153,80 @@
             padding: .28rem .45rem;
         }
 
+        .reajuste-campo {
+            max-width: 9rem;
+        }
+
+        .planilha-importar.disabled {
+            opacity: .65;
+            pointer-events: none;
+        }
+
+        .importacao-previa {
+            background: var(--app-surface-soft);
+        }
+
+        .importacao-alteracoes {
+            background: var(--app-surface);
+            border: 1px solid var(--app-line);
+            border-radius: .5rem;
+            max-height: 16rem;
+            overflow-y: auto;
+        }
+
+        .importacao-alteracoes table {
+            font-size: .85rem;
+        }
+
+        .importacao-alteracoes thead th {
+            background: var(--app-surface-soft);
+            font-size: .72rem;
+            letter-spacing: .06em;
+            position: sticky;
+            text-transform: uppercase;
+            top: 0;
+            z-index: 1;
+        }
+
+        /* aviso rapido exibido ao clicar em um nome de variavel */
+        .copia-aviso {
+            background: var(--app-brand-dark);
+            border-radius: .5rem;
+            bottom: 1.25rem;
+            box-shadow: 0 18px 36px -20px rgba(23, 36, 61, .95);
+            color: #fff;
+            font-size: .82rem;
+            left: 50%;
+            max-width: min(90vw, 34rem);
+            overflow-wrap: anywhere;
+            padding: .6rem 1rem;
+            position: fixed;
+            transform: translateX(-50%);
+            z-index: 1080;
+        }
+
+        .copia-aviso-erro {
+            background: #a02a22;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            .copia-aviso {
+                animation: copia-aviso-entrada .16s ease-out;
+            }
+        }
+
+        @keyframes copia-aviso-entrada {
+            from {
+                opacity: 0;
+                transform: translate(-50%, .35rem);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
         @media (max-width: 991.98px) {
             .variables-table {
                 min-width: 780px;
@@ -302,6 +376,307 @@
 
     <div class="card mb-4">
         <div class="card-header">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <h2 class="section-title">
+                        Planilha (.xlsx)
+                    </h2>
+
+                    <div class="text-muted small">
+                        Exporte a tabela, edite no Excel e importe o mesmo arquivo com as correções. A importação nunca grava sozinha: confira a prévia e clique em <strong>Salvar variáveis</strong>.
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        :disabled="exportando || importando || !linhas.length || !colunas.length"
+                        @click="exportarPlanilha"
+                    >
+                        <span
+                            v-if="exportando"
+                            class="spinner-border spinner-border-sm me-2"
+                            aria-hidden="true"
+                        ></span>
+
+                        {{ exportando ? 'Exportando...' : 'Exportar planilha' }}
+                    </button>
+
+                    <label
+                        class="btn btn-outline-primary planilha-importar mb-0"
+                        :class="{ disabled: importando }"
+                    >
+                        <span
+                            v-if="importando"
+                            class="spinner-border spinner-border-sm me-2"
+                            aria-hidden="true"
+                        ></span>
+
+                        {{ importando ? 'Lendo planilha...' : 'Importar planilha' }}
+
+                        <input
+                            type="file"
+                            class="d-none"
+                            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            :disabled="importando"
+                            @change="selecionarArquivoImportacao"
+                        >
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <p class="text-muted small mb-0">
+                A planilha exportada inclui todas as linhas e colunas (inclusive as que estão fora da busca) e também as alterações ainda não salvas. Linhas ou colunas que existem na tela e não estão no arquivo são mantidas.
+            </p>
+
+            <p
+                v-if="mensagemExportacao"
+                class="small text-muted mb-0 mt-2"
+                role="status"
+            >
+                {{ mensagemExportacao }}
+            </p>
+
+            <div
+                v-if="erroImportacao"
+                class="alert alert-danger border-0 small mt-3 mb-0 py-2 px-3"
+                role="alert"
+            >
+                {{ erroImportacao }}
+            </div>
+
+            <div
+                v-if="dadosImportacao && resumoImportacao"
+                class="importacao-previa border rounded p-3 mt-3"
+            >
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                    <div>
+                        <div class="fw-semibold text-break">
+                            {{ resumoImportacao.arquivo }}
+                        </div>
+
+                        <div class="text-muted small">
+                            Aba {{ resumoImportacao.aba }} · {{ resumoImportacao.totalLinhas }} linhas · {{ resumoImportacao.totalColunas }} colunas na planilha
+                        </div>
+                    </div>
+
+                    <span class="badge rounded-pill counter-badge">
+                        Prévia da importação
+                    </span>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <span class="badge rounded-pill counter-badge">
+                        {{ resumoImportacao.alteracoes.length }}
+                        {{ resumoImportacao.alteracoes.length === 1 ? 'célula alterada' : 'células alteradas' }}
+                    </span>
+
+                    <span
+                        v-if="resumoImportacao.novasLinhas.length"
+                        class="badge rounded-pill counter-badge"
+                    >
+                        {{ resumoImportacao.novasLinhas.length }}
+                        {{ resumoImportacao.novasLinhas.length === 1 ? 'nova linha' : 'novas linhas' }}
+                    </span>
+
+                    <span
+                        v-if="resumoImportacao.novasColunas.length"
+                        class="badge rounded-pill counter-badge"
+                    >
+                        {{ resumoImportacao.novasColunas.length }}
+                        {{ resumoImportacao.novasColunas.length === 1 ? 'nova coluna' : 'novas colunas' }}
+                    </span>
+
+                    <span
+                        v-if="resumoImportacao.celulasVazias.length"
+                        class="badge rounded-pill counter-badge"
+                    >
+                        {{ resumoImportacao.celulasVazias.length }}
+                        {{ resumoImportacao.celulasVazias.length === 1 ? 'célula vazia' : 'células vazias' }}
+                        na planilha
+                    </span>
+
+                    <span
+                        v-if="resumoImportacao.linhasAusentes.length"
+                        class="badge rounded-pill counter-badge"
+                    >
+                        {{ resumoImportacao.linhasAusentes.length }}
+                        {{ resumoImportacao.linhasAusentes.length === 1 ? 'linha da tela fora da planilha' : 'linhas da tela fora da planilha' }}
+                    </span>
+                </div>
+
+                <p
+                    v-if="!resumoImportacao.podeAplicar"
+                    class="small text-muted mt-3 mb-0"
+                >
+                    Nenhuma diferença encontrada entre a planilha e a tabela atual.
+                </p>
+
+                <ul
+                    v-if="resumoImportacao.avisos.length"
+                    class="small text-muted mt-3 mb-0 ps-3"
+                >
+                    <li v-for="(aviso, indice) in resumoImportacao.avisos" :key="indice">
+                        {{ aviso }}
+                    </li>
+                </ul>
+
+                <div class="row g-2 mt-1">
+                    <div class="col-lg-6">
+                        <div class="form-check">
+                            <input
+                                id="importar-novas-linhas"
+                                v-model="importarNovasLinhas"
+                                type="checkbox"
+                                class="form-check-input"
+                                :disabled="!resumoImportacao.novasLinhas.length"
+                            >
+
+                            <label class="form-check-label small" for="importar-novas-linhas">
+                                Criar linhas que ainda não existem ({{ resumoImportacao.novasLinhas.length }})
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-check">
+                            <input
+                                id="importar-novas-colunas"
+                                v-model="importarNovasColunas"
+                                type="checkbox"
+                                class="form-check-input"
+                                :disabled="!resumoImportacao.novasColunas.length"
+                            >
+
+                            <label class="form-check-label small" for="importar-novas-colunas">
+                                Criar colunas que ainda não existem ({{ resumoImportacao.novasColunas.length }})
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="form-check">
+                            <input
+                                id="importar-limpar-vazias"
+                                v-model="limparCelulasVazias"
+                                type="checkbox"
+                                class="form-check-input"
+                                :disabled="!resumoImportacao.celulasVazias.length"
+                            >
+
+                            <label class="form-check-label small" for="importar-limpar-vazias">
+                                Apagar valores das células vazias na planilha ({{ resumoImportacao.celulasVazias.length }})
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    v-if="resumoImportacao.alteracoes.length"
+                    class="importacao-alteracoes table-responsive mt-3"
+                >
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Variável</th>
+                                <th scope="col">Valor atual</th>
+                                <th scope="col">Novo valor</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr
+                                v-for="alteracao in resumoImportacao.alteracoesVisiveis"
+                                :key="`${alteracao.variavel}-${alteracao.depois}`"
+                            >
+                                <td class="text-nowrap">
+                                    <span class="placeholder-code">{{ alteracao.variavel }}</span>
+                                </td>
+
+                                <td class="text-muted text-break">
+                                    {{ alteracao.antes || '—' }}
+                                </td>
+
+                                <td class="fw-semibold text-break">
+                                    {{ alteracao.depois || '—' }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p
+                    v-if="resumoImportacao.alteracoes.length > resumoImportacao.alteracoesVisiveis.length"
+                    class="text-muted small mb-0 mt-2"
+                >
+                    Mostrando as {{ resumoImportacao.alteracoesVisiveis.length }} primeiras alterações de {{ resumoImportacao.alteracoes.length }}.
+                </p>
+
+                <div v-if="limparCelulasVazias && resumoImportacao.celulasVazias.length" class="mt-3">
+                    <p class="small text-muted mb-1">
+                        Valores que serão apagados:
+                    </p>
+
+                    <ul class="small text-muted mb-0 ps-3">
+                        <li
+                            v-for="celulaVazia in resumoImportacao.celulasVaziasVisiveis"
+                            :key="celulaVazia.variavel"
+                        >
+                            {{ celulaVazia.variavel }}: {{ celulaVazia.antes }}
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        :disabled="!resumoImportacao.podeAplicar"
+                        @click="aplicarImportacao"
+                    >
+                        Aplicar na tabela
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary"
+                        @click="cancelarImportacao"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+
+                <p class="text-muted small mb-0 mt-2">
+                    A prévia ainda não altera nada no banco: ela só muda a tela. Depois de aplicar, use <strong>Salvar variáveis</strong> para confirmar ou <strong>Desfazer importação</strong> para voltar ao estado anterior.
+                </p>
+            </div>
+
+
+            <div
+                v-if="!dadosImportacao && mensagemImportacao"
+                class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mt-3"
+            >
+                <p class="small text-muted mb-0" role="status">
+                    {{ mensagemImportacao }}
+                </p>
+
+                <button
+                    v-if="ultimaImportacao"
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="desfazerImportacao"
+                >
+                    Desfazer importação
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
                 <div>
                     <h2 class="section-title">
@@ -330,6 +705,73 @@
         </div>
 
         <div class="card-body">
+            <div
+                v-if="!carregando && linhas.length > 0 && colunas.length > 0"
+                class="add-panel mb-3"
+            >
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                    <div>
+                        <h3 class="section-title">
+                            Reajuste em percentual
+                        </h3>
+
+                        <p class="text-muted small mb-0">
+                            Aplica o percentual em todas as células preenchidas da tabela agrupada, inclusive nas linhas fora do filtro. Use valor negativo para reduzir e salve as variáveis para confirmar.
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-shrink-0 align-items-end gap-2">
+                        <div class="reajuste-campo">
+                            <label for="reajuste-percentual" class="form-label">
+                                Percentual
+                            </label>
+
+                            <div class="input-group">
+                                <input
+                                    id="reajuste-percentual"
+                                    type="text"
+                                    inputmode="decimal"
+                                    class="form-control"
+                                    v-model="reajustePercentual"
+                                    placeholder="Ex.: 4,5"
+                                    @keyup.enter="aplicarReajuste"
+                                >
+
+                                <span class="input-group-text">
+                                    %
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary"
+                            @click="aplicarReajuste"
+                        >
+                            Aplicar reajuste
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    v-if="mensagemReajuste"
+                    class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3"
+                >
+                    <p class="text-muted small mb-0" role="status">
+                        {{ mensagemReajuste }}
+                    </p>
+
+                    <button
+                        v-if="ultimoReajuste"
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary flex-shrink-0"
+                        @click="desfazerReajuste"
+                    >
+                        Desfazer reajuste
+                    </button>
+                </div>
+            </div>
+
             <div
                 v-if="carregando"
                 class="empty-state d-flex align-items-center justify-content-center gap-2"
@@ -653,6 +1095,16 @@
                 </table>
             </div>
         </div>
+    </div>
+
+    <div
+        class="copia-aviso"
+        :class="{'copia-aviso-erro': avisoCopia.erro}"
+        v-if="avisoCopia.mensagem"
+        role="status"
+        aria-live="polite"
+    >
+        {{ avisoCopia.mensagem }}
     </div>
 
 </div>
