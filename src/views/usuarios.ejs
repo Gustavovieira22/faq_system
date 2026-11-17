@@ -6,138 +6,195 @@
     <title>Usuários</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
 </head>
-<body class="bg-light">
+<body>
 
-<main class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+<main class="app-shell app-shell--narrow py-4 px-3 px-lg-4">
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Usuários autorizados</h1>
-
-                <div class="d-flex gap-2">
-                    <a href="/buscar/perguntas" class="btn btn-outline-secondary">FAQ</a>
-
-                    <form method="post" action="/logout">
-                        <button type="submit" class="btn btn-outline-danger">Sair</button>
-                    </form>
+    <header class="page-header mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <div class="page-eyebrow mb-1">
+                    Administração do FAQ
                 </div>
+
+                <h1 class="page-title">
+                    Usuários autorizados
+                </h1>
+
+                <p class="page-subtitle mb-0 mt-2">
+                    Cadastre acessos, ajuste sua senha e acompanhe quem pode editar o FAQ.
+                </p>
             </div>
 
-            <% if (erro) { %>
-                <div class="alert alert-danger" role="alert">
-                    <%= erro %>
-                </div>
-            <% } %>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="/buscar/perguntas" class="btn btn-outline-light">
+                    Voltar ao FAQ
+                </a>
 
-            <% if (sucesso) { %>
-                <div class="alert alert-success" role="alert">
-                    <%= sucesso %>
-                </div>
-            <% } %>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h2 class="h5 mb-3">Cadastrar usuário</h2>
-
-                    <form method="post" action="/usuarios">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="nome" class="form-label">Nome</label>
-                                <input type="text" id="nome" name="nome" class="form-control" required>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="login" class="form-label">Login</label>
-                                <input type="text" id="login" name="login" class="form-control" required>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="senha" class="form-label">Senha</label>
-                                <input type="password" id="senha" name="senha" class="form-control" minlength="6" required>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="tipo" class="form-label">Tipo</label>
-                                <select id="tipo" name="tipo" class="form-select" required>
-                                    <option value="comum">Comum</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary mt-3">
-                            Cadastrar
-                        </button>
-                    </form>
-                </div>
+                <form method="post" action="/logout">
+                    <button type="submit" class="btn btn-light fw-semibold">
+                        Sair
+                    </button>
+                </form>
             </div>
+        </div>
+    </header>
 
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h2 class="h5 mb-3">Alterar minha senha</h2>
+    <% if (erro) { %>
+        <div class="alert alert-danger d-flex align-items-start gap-2 border-0 shadow-sm mb-4" role="alert">
+            <svg class="flex-shrink-0 mt-1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14Zm0-1A6 6 0 1 0 8 2a6 6 0 0 0 0 12Zm0-9.5a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0v-4A.75.75 0 0 1 8 4.5Zm0 6.75a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8Z"/>
+            </svg>
 
-                    <form method="post" action="/usuarios/minha-senha">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="senhaAtual" class="form-label">Senha atual</label>
-                                <input type="password" id="senhaAtual" name="senhaAtual" class="form-control" required>
-                            </div>
+            <span><%= erro %></span>
+        </div>
+    <% } %>
 
-                            <div class="col-md-6">
-                                <label for="novaSenha" class="form-label">Nova senha</label>
-                                <input type="password" id="novaSenha" name="novaSenha" class="form-control" minlength="6" required>
-                            </div>
-                        </div>
+    <% if (sucesso) { %>
+        <div class="alert alert-success d-flex align-items-start gap-2 border-0 shadow-sm mb-4" role="alert">
+            <svg class="flex-shrink-0 mt-1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05Z"/>
+            </svg>
 
-                        <button type="submit" class="btn btn-primary mt-3">
-                            Alterar senha
-                        </button>
-                    </form>
-                </div>
+            <span><%= sucesso %></span>
+        </div>
+    <% } %>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="section-title">
+                Cadastrar usuário
+            </h2>
+
+            <div class="text-muted small">
+                Defina o login, a senha inicial e o nível de acesso.
             </div>
+        </div>
 
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <h2 class="h5 mb-3">Cadastrados</h2>
+        <div class="card-body">
+            <form method="post" action="/usuarios">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="nome" class="form-label">Nome</label>
+                        <input type="text" id="nome" name="nome" class="form-control" placeholder="Ex.: Maria Souza" required>
+                    </div>
 
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Login</th>
-                                    <th>Tipo</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
+                    <div class="col-md-3">
+                        <label for="login" class="form-label">Login</label>
+                        <input type="text" id="login" name="login" class="form-control" placeholder="Ex.: maria.souza" required>
+                    </div>
 
-                            <tbody>
-                                <% usuarios.forEach(usuario => { %>
-                                    <tr>
-                                        <td><%= usuario.nome %></td>
-                                        <td><code><%= usuario.login %></code></td>
-                                        <td>
-                                            <span class="badge text-bg-<%= usuario.tipo === 'admin' ? 'primary' : 'secondary' %>">
-                                                <%= usuario.tipo === 'admin' ? 'Admin' : 'Comum' %>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge text-bg-<%= usuario.ativo ? 'success' : 'secondary' %>">
-                                                <%= usuario.ativo ? 'Ativo' : 'Inativo' %>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <% }) %>
-                            </tbody>
-                        </table>
+                    <div class="col-md-3">
+                        <label for="senha" class="form-label">Senha</label>
+                        <input type="password" id="senha" name="senha" class="form-control" placeholder="Mínimo de 6 caracteres" minlength="6" autocomplete="new-password" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="tipo" class="form-label">Tipo</label>
+                        <select id="tipo" name="tipo" class="form-select" required>
+                            <option value="comum">Comum</option>
+                            <option value="admin">Admin</option>
+                        </select>
                     </div>
                 </div>
-            </div>
 
+                <button type="submit" class="btn btn-primary mt-3">
+                    Cadastrar
+                </button>
+            </form>
         </div>
     </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="section-title">
+                Alterar minha senha
+            </h2>
+
+            <div class="text-muted small">
+                Informe a senha atual para definir uma nova senha de acesso.
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form method="post" action="/usuarios/minha-senha">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="senhaAtual" class="form-label">Senha atual</label>
+                        <input type="password" id="senhaAtual" name="senhaAtual" class="form-control" autocomplete="current-password" required>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="novaSenha" class="form-label">Nova senha</label>
+                        <input type="password" id="novaSenha" name="novaSenha" class="form-control" placeholder="Mínimo de 6 caracteres" minlength="6" autocomplete="new-password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-3">
+                    Alterar senha
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2">
+                <div>
+                    <h2 class="section-title">
+                        Cadastrados
+                    </h2>
+
+                    <div class="text-muted small">
+                        Todos os usuários com acesso ao sistema.
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge rounded-pill counter-badge">
+                        <%= usuarios.length %> usuários
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle simple-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Login</th>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <% usuarios.forEach(usuario => { %>
+                            <tr>
+                                <td><%= usuario.nome %></td>
+                                <td><code><%= usuario.login %></code></td>
+                                <td>
+                                    <span class="badge text-bg-<%= usuario.tipo === 'admin' ? 'primary' : 'secondary' %>">
+                                        <%= usuario.tipo === 'admin' ? 'Admin' : 'Comum' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge text-bg-<%= usuario.ativo ? 'success' : 'secondary' %>">
+                                        <%= usuario.ativo ? 'Ativo' : 'Inativo' %>
+                                    </span>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </main>
 
 </body>

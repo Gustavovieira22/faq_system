@@ -1,5 +1,8 @@
 const { createApp } = Vue;
 
+//quantidade maxima de itens exibidos sem busca ativa (os demais aparecem pela busca)
+const LIMITE_EXIBICAO = 20;
+
 createApp({
     data() {
         return {
@@ -24,27 +27,62 @@ createApp({
 
     computed: {
         perguntasFiltradas() {
-            const termo = this.busca
-                .trim()
-                .toLowerCase();
+            const termo = this.normalizarTexto(this.busca);
 
-            //limita a quantidade de perguntas exibidas na tela
+            //sem busca: limita a quantidade de perguntas exibidas na tela
             if (!termo) {
-                return this.perguntas.slice(0, 20);
+                return this.perguntas.slice(0, LIMITE_EXIBICAO);
             }
 
-            //limita a quantidade de perguntas retornadas na busca
-            return this.perguntas
-                .filter(pergunta =>
-                    pergunta.titulo
-                        .toLowerCase()
-                        .includes(termo)
-                )
-                .slice(0, 20);
+            //com busca: exibe todos os resultados (ignora acentos e maiusculas)
+            return this.perguntas.filter(pergunta => (
+                this.normalizarTexto(pergunta.titulo).includes(termo)
+            ));
+        },
+
+        resumoPerguntas() {
+            const total = this.perguntas.length;
+            const exibidas = this.perguntasFiltradas.length;
+
+            if (total === 0) {
+                return '0 perguntas';
+            }
+
+            if (exibidas === total) {
+                return total === 1 ? '1 pergunta' : `${total} perguntas`;
+            }
+
+            return `${exibidas} de ${total} perguntas`;
+        },
+
+        textoBusca() {
+            const termo = this.normalizarTexto(this.busca);
+
+            if (termo) {
+                const encontradas = this.perguntasFiltradas.length;
+
+                return encontradas === 1
+                    ? '1 pergunta encontrada.'
+                    : `${encontradas} perguntas encontradas.`;
+            }
+
+            if (this.perguntas.length > LIMITE_EXIBICAO) {
+                return `Mostrando as ${LIMITE_EXIBICAO} primeiras perguntas de ${this.perguntas.length}. Use a busca para ver as demais.`;
+            }
+
+            return 'Digite parte do título para filtrar a lista.';
         }
     },
 
     methods: {
+        normalizarTexto(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        },
+
         async cadastrarPergunta() {
             if (!this.isAdmin) {
                 return;

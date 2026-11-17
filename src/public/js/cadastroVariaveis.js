@@ -1,5 +1,8 @@
 const { createApp } = Vue;
 
+//quantidade maxima de itens exibidos sem filtro ativo (os demais aparecem pela busca)
+const LIMITE_EXIBICAO = 20;
+
 createApp({
     data() {
         return {
@@ -24,44 +27,93 @@ createApp({
             nomeVariavelOrdem: '__ORDEM_VARIAVEIS__',
             arrastoLinhaId: null,
             arrastoColunaIndex: null,
+            linhaAdicionadaId: null,
             exemplo_placeholder: '{{curso_ads.preco_cheio}}'
         };
     },
 
     computed: {
         linhasFiltradas() {
-            const termo = this.filtro.trim().toLowerCase();
+            const termo = this.normalizarTexto(this.filtro);
 
+            //sem filtro: limita a quantidade de linhas exibidas na tela
             if (!termo) {
-                return this.linhas;
+                const visiveis = this.linhas.slice(0, LIMITE_EXIBICAO);
+                const linhaAdicionada = this.linhas.find(linha => (
+                    linha._id === this.linhaAdicionadaId
+                ));
+
+                //garante que a linha recem-criada apareca mesmo fora da janela exibida
+                if (linhaAdicionada && !visiveis.includes(linhaAdicionada)) {
+                    visiveis.push(linhaAdicionada);
+                }
+
+                return visiveis;
             }
 
+            //com filtro: exibe todos os resultados (ignora acentos e maiusculas)
             return this.linhas.filter(linha => {
-                if (linha.nome.toLowerCase().includes(termo)) {
+                if (this.normalizarTexto(linha.nome).includes(termo)) {
                     return true;
                 }
 
                 return this.colunas.some(coluna => {
                     const valor = linha.valores[coluna] || '';
 
-                    return coluna.toLowerCase().includes(termo)
-                        || valor.toLowerCase().includes(termo);
+                    return this.normalizarTexto(coluna).includes(termo)
+                        || this.normalizarTexto(valor).includes(termo);
                 });
             });
         },
 
         simplesFiltradas() {
-            const termo = this.filtroSimples.trim().toLowerCase();
+            const termo = this.normalizarTexto(this.filtroSimples);
 
+            //sem filtro: limita a quantidade de variaveis exibidas na tela
             if (!termo) {
-                return this.simples;
+                return this.simples.slice(0, LIMITE_EXIBICAO);
             }
 
+            //com filtro: exibe todos os resultados (ignora acentos e maiusculas)
             return this.simples.filter(variavel => (
-                variavel.nome.toLowerCase().includes(termo)
-                || String(variavel.valor || '').toLowerCase().includes(termo)
-                || this.placeholderSimples(variavel.nome).toLowerCase().includes(termo)
+                this.normalizarTexto(variavel.nome).includes(termo)
+                || this.normalizarTexto(variavel.valor).includes(termo)
+                || this.normalizarTexto(this.placeholderSimples(variavel.nome)).includes(termo)
             ));
+        },
+
+        avisoLinhas() {
+            const total = this.linhas.length;
+            const exibidas = this.linhasFiltradas.length;
+
+            if (this.normalizarTexto(this.filtro)) {
+                return exibidas === 1
+                    ? '1 linha encontrada para a busca.'
+                    : `${exibidas} linhas encontradas para a busca.`;
+            }
+
+            if (total > LIMITE_EXIBICAO) {
+                return `Mostrando as ${LIMITE_EXIBICAO} primeiras linhas de ${total}. Use a busca para encontrar as demais.`;
+            }
+
+            return '';
+        },
+
+        avisoSimples() {
+            const total = this.simples.length;
+            const exibidas = this.simplesFiltradas.length;
+
+            if (this.normalizarTexto(this.filtroSimples)) {
+                return exibidas === 1
+                    ? '1 variavel encontrada para a busca.'
+                    : `${exibidas} variaveis encontradas para a busca.`;
+            }
+
+            if (total > LIMITE_EXIBICAO) {
+                return `Mostrando as ${LIMITE_EXIBICAO} primeiras variaveis de ${total}. Use a busca para encontrar as demais.`;
+            }
+
+            return '';
         }
     },
 
@@ -89,6 +141,14 @@ createApp({
     },
 
     methods: {
+        normalizarTexto(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        },
+
         normalizarIdentificador(valor) {
             return String(valor || '')
                 .normalize('NFD')
@@ -255,6 +315,7 @@ createApp({
                 ordemSalva.simples,
                 variavel => variavel.nome
             );
+            this.linhaAdicionadaId = null;
         },
 
         async carregarVariaveis() {
@@ -304,11 +365,14 @@ createApp({
                 valores[coluna] = '';
             });
 
-            this.linhas.push({
+            const novaLinha = {
                 _id: this.criarId('linha'),
                 nome,
                 valores
-            });
+            };
+
+            this.linhas.push(novaLinha);
+            this.linhaAdicionadaId = novaLinha._id;
             this.novaLinha = '';
         },
 

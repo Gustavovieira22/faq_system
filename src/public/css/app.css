@@ -1,0 +1,613 @@
+/* ==========================================================================
+   FAQ Puc Goiás CAD - design system compartilhado
+   Carregado depois do Bootstrap em todas as páginas.
+   ========================================================================== */
+
+:root {
+    --app-ink: #1f2a37;
+    --app-muted: #6b7688;
+    --app-line: #e2e8f1;
+    --app-surface: #ffffff;
+    --app-surface-soft: #f6f8fc;
+    --app-brand: #2f4d80;
+    --app-brand-dark: #17243d;
+    --app-code: #8a3d9e;
+    --app-code-soft: #f8eefb;
+    --app-ring: rgba(47, 77, 128, .14);
+    --app-shadow-card: 0 16px 36px -32px rgba(23, 36, 61, .6);
+    --app-shadow-header: 0 18px 40px -26px rgba(23, 36, 61, .9);
+}
+
+body {
+    background: linear-gradient(180deg, #eef2f9 0%, #f8fafc 420px) fixed;
+    color: var(--app-ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: var(--app-brand);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+a:hover {
+    color: var(--app-brand-dark);
+}
+
+code {
+    background: var(--app-code-soft);
+    border-radius: .35rem;
+    color: var(--app-code);
+    font-size: .86em;
+    padding: .12rem .38rem;
+}
+
+/* ---------- Estrutura ---------- */
+
+.app-shell {
+    margin-inline: auto;
+    max-width: 1680px;
+}
+
+.app-shell--narrow {
+    max-width: 1080px;
+}
+
+/* ---------- Cabeçalho das páginas ---------- */
+
+.page-header {
+    background: linear-gradient(120deg, var(--app-brand-dark) 0%, var(--app-brand) 100%);
+    border-radius: 1.15rem;
+    box-shadow: var(--app-shadow-header);
+    color: #fff;
+    padding: 1.5rem 1.75rem;
+}
+
+.page-eyebrow {
+    color: #b9c9e6;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+
+.page-title {
+    font-size: 1.6rem;
+    font-weight: 650;
+    letter-spacing: -.015em;
+    margin: 0;
+}
+
+.page-subtitle {
+    color: #d7e1f2;
+    font-size: .95rem;
+    max-width: 62ch;
+}
+
+.page-header .placeholder-code {
+    background: rgba(255, 255, 255, .14);
+    border-color: rgba(255, 255, 255, .32);
+    color: #ffe6fb;
+}
+
+.page-header .placeholder-code:hover {
+    background: rgba(255, 255, 255, .24);
+    border-color: rgba(255, 255, 255, .55);
+}
+
+.page-header .btn-light {
+    --bs-btn-bg: #ffffff;
+    --bs-btn-border-color: #ffffff;
+    --bs-btn-color: var(--app-brand-dark);
+    --bs-btn-hover-bg: #e8eef8;
+    --bs-btn-hover-border-color: #e8eef8;
+    --bs-btn-hover-color: var(--app-brand-dark);
+    --bs-btn-active-bg: #dbe5f4;
+    --bs-btn-active-border-color: #dbe5f4;
+    --bs-btn-active-color: var(--app-brand-dark);
+}
+
+.page-header .btn-outline-light {
+    --bs-btn-color: #eef3fb;
+    --bs-btn-border-color: rgba(255, 255, 255, .45);
+    --bs-btn-hover-bg: rgba(255, 255, 255, .16);
+    --bs-btn-hover-border-color: #ffffff;
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-active-bg: rgba(255, 255, 255, .24);
+    --bs-btn-active-border-color: #ffffff;
+    --bs-btn-active-color: #ffffff;
+}
+
+/* ---------- Botões ---------- */
+
+.btn {
+    border-radius: .6rem;
+    font-weight: 550;
+}
+
+.btn-sm {
+    border-radius: .5rem;
+}
+
+.btn-lg {
+    border-radius: .75rem;
+}
+
+.btn-primary {
+    --bs-btn-bg: #2f4d80;
+    --bs-btn-border-color: #2f4d80;
+    --bs-btn-hover-bg: #263f6a;
+    --bs-btn-hover-border-color: #263f6a;
+    --bs-btn-active-bg: #223a61;
+    --bs-btn-active-border-color: #223a61;
+    --bs-btn-disabled-bg: #8ea3c3;
+    --bs-btn-disabled-border-color: #8ea3c3;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #2f4d80;
+    --bs-btn-border-color: #b9c9e2;
+    --bs-btn-hover-bg: #2f4d80;
+    --bs-btn-hover-border-color: #2f4d80;
+    --bs-btn-active-bg: #263f6a;
+    --bs-btn-active-border-color: #263f6a;
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: #4b5a72;
+    --bs-btn-border-color: #cdd7e6;
+    --bs-btn-hover-bg: #eef2f9;
+    --bs-btn-hover-border-color: #b9c9e2;
+    --bs-btn-hover-color: var(--app-brand-dark);
+    --bs-btn-active-bg: #e3e9f4;
+    --bs-btn-active-border-color: #b9c9e2;
+    --bs-btn-active-color: var(--app-brand-dark);
+}
+
+.btn:focus-visible,
+.btn-close:focus-visible,
+.accordion-button:focus-visible,
+a:focus-visible {
+    outline: 2px solid rgba(47, 77, 128, .45);
+    outline-offset: 2px;
+}
+
+/* ---------- Cards e seções ---------- */
+
+.card {
+    border: 1px solid var(--app-line);
+    border-radius: 1rem;
+    box-shadow: var(--app-shadow-card);
+}
+
+.card-header {
+    background: var(--app-surface);
+    border-bottom: 1px solid var(--app-line);
+    border-radius: 1rem 1rem 0 0 !important;
+    padding: .95rem 1.25rem;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.section-title {
+    font-size: 1.02rem;
+    font-weight: 650;
+    letter-spacing: -.01em;
+    margin: 0 0 .2rem;
+}
+
+.counter-badge {
+    background: var(--app-surface-soft);
+    border: 1px solid var(--app-line);
+    color: var(--app-muted);
+    font-size: .74rem;
+    font-weight: 600;
+    padding: .35rem .65rem;
+}
+
+/* ---------- Formulários ---------- */
+
+.form-label {
+    color: var(--app-muted);
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    margin-bottom: .3rem;
+}
+
+.form-control,
+.form-select {
+    border-color: #dbe3ef;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #a9bfe0;
+    box-shadow: 0 0 0 .2rem var(--app-ring);
+}
+
+.form-control::placeholder {
+    color: #98a3b6;
+}
+
+.form-control-sm {
+    border-color: #e0e7f1;
+}
+
+.form-text {
+    color: var(--app-muted);
+    font-size: .8rem;
+}
+
+/* ---------- Blocos auxiliares ---------- */
+
+.add-panel {
+    background: var(--app-surface-soft);
+    border: 1px solid var(--app-line);
+    border-radius: .85rem;
+    padding: .85rem;
+}
+
+.empty-state {
+    background: var(--app-surface-soft);
+    border: 1px dashed #d3dded;
+    border-radius: .85rem;
+    color: var(--app-muted);
+    padding: 1.5rem 1rem;
+    text-align: center;
+}
+
+.placeholder-code {
+    background: var(--app-code-soft);
+    border: 1px solid #ecd9f4;
+    border-radius: .4rem;
+    color: var(--app-code);
+    cursor: pointer;
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: .78rem;
+    line-height: 1.4;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    padding: .15rem .45rem;
+    transition: background-color .15s ease, border-color .15s ease, transform .15s ease;
+    vertical-align: middle;
+}
+
+.placeholder-code:hover {
+    background: #f1e0f8;
+    border-color: #d9b8e6;
+    transform: translateY(-1px);
+}
+
+.placeholder-code:active {
+    transform: translateY(0);
+}
+
+/* ---------- Tabelas ---------- */
+
+.simple-table {
+    font-size: .9rem;
+}
+
+.simple-table thead th {
+    border-bottom: 1px solid var(--app-line);
+    color: var(--app-muted);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    padding: .6rem .75rem;
+    text-transform: uppercase;
+}
+
+.simple-table tbody td {
+    border-color: #eef2f8;
+    padding: .6rem .75rem;
+    vertical-align: middle;
+}
+
+.simple-table tbody tr {
+    transition: background-color .15s ease;
+}
+
+.simple-table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+    border-radius: .5rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: .38em .6em;
+}
+
+.badge.rounded-pill {
+    border-radius: 50rem !important;
+}
+
+.text-bg-primary {
+    background-color: var(--app-brand) !important;
+    color: #fff !important;
+}
+
+.text-bg-success {
+    background-color: #2f7d52 !important;
+    color: #fff !important;
+}
+
+.text-bg-secondary {
+    background-color: #8492a6 !important;
+    color: #fff !important;
+}
+
+/* ---------- Alertas ---------- */
+
+.alert {
+    border-radius: .8rem;
+    font-size: .94rem;
+}
+
+.alert-danger {
+    --bs-alert-bg: #fdf1f2;
+    --bs-alert-border: #f2c9cf;
+    --bs-alert-color: #8c2530;
+}
+
+.alert-success {
+    --bs-alert-bg: #f0f8f2;
+    --bs-alert-border: #c3e2cc;
+    --bs-alert-color: #22633a;
+}
+
+.alert-warning {
+    --bs-alert-bg: #fff8e6;
+    --bs-alert-border: #f2dfa8;
+    --bs-alert-color: #6f5410;
+}
+
+.alert-secondary {
+    --bs-alert-bg: var(--app-surface-soft);
+    --bs-alert-border: var(--app-line);
+    --bs-alert-color: var(--app-muted);
+}
+
+/* ---------- Modais ---------- */
+
+.modal-content {
+    border: 1px solid var(--app-line);
+    border-radius: 1rem;
+    box-shadow: 0 30px 70px -40px rgba(23, 36, 61, .65);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--app-line);
+    padding: 1rem 1.25rem;
+}
+
+.modal-title {
+    color: var(--app-ink);
+    font-weight: 650;
+    letter-spacing: -.01em;
+}
+
+.modal-body {
+    padding: 1.25rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--app-line);
+}
+
+/* ---------- Editor (Quill) ---------- */
+
+.editor-shell {
+    border-radius: .7rem;
+    overflow: hidden;
+}
+
+.editor-shell .ql-toolbar.ql-snow {
+    background: var(--app-surface-soft);
+    border-color: var(--app-line);
+}
+
+.editor-shell .ql-container.ql-snow {
+    border-color: var(--app-line);
+    font-family: inherit;
+    font-size: .95rem;
+}
+
+.editor-shell .ql-editor {
+    line-height: 1.6;
+}
+
+/* ---------- FAQ: busca e acordeão ---------- */
+
+.search-field {
+    position: relative;
+}
+
+.search-field .search-icon {
+    color: var(--app-muted);
+    left: 1.05rem;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.search-field .form-control {
+    border-radius: .85rem;
+    padding-bottom: .85rem;
+    padding-left: 2.95rem;
+    padding-top: .85rem;
+}
+
+.faq-accordion .accordion-item {
+    background: var(--app-surface);
+    border: 1px solid var(--app-line);
+    border-radius: .9rem;
+    box-shadow: var(--app-shadow-card);
+    margin-bottom: .75rem;
+    overflow: hidden;
+}
+
+.faq-accordion .accordion-item:last-child {
+    margin-bottom: 0;
+}
+
+.faq-accordion .accordion-button {
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-size: 1rem;
+    font-weight: 600;
+    gap: .75rem;
+    padding: 1rem 1.15rem;
+}
+
+.faq-accordion .accordion-button:not(.collapsed) {
+    background: var(--app-surface-soft);
+    box-shadow: none;
+    color: var(--app-brand-dark);
+}
+
+.faq-accordion .accordion-button:focus {
+    border-color: transparent;
+    box-shadow: none;
+}
+
+.faq-accordion .accordion-button:focus-visible {
+    outline: 2px solid rgba(47, 77, 128, .45);
+    outline-offset: -2px;
+}
+
+.faq-accordion .accordion-body {
+    color: #33415c;
+    padding: 0 1.15rem 1.15rem;
+}
+
+.faq-resposta {
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.faq-resposta > :last-child {
+    margin-bottom: 0;
+}
+
+.faq-resposta ul,
+.faq-resposta ol {
+    padding-left: 1.25rem;
+}
+
+/* ---------- Login ---------- */
+
+.auth-shell {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+.auth-card {
+    max-width: 440px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.auth-header {
+    background: linear-gradient(120deg, var(--app-brand-dark) 0%, var(--app-brand) 100%);
+    color: #fff;
+    padding: 1.6rem 1.6rem 1.45rem;
+}
+
+.auth-title {
+    font-size: 1.35rem;
+    font-weight: 650;
+    letter-spacing: -.015em;
+    margin: 0;
+}
+
+.auth-subtitle {
+    color: #d7e1f2;
+    font-size: .9rem;
+    margin: .4rem 0 0;
+}
+
+.auth-body {
+    padding: 1.5rem 1.6rem;
+}
+
+.auth-footer {
+    border-top: 1px solid var(--app-line);
+    color: var(--app-muted);
+    font-size: .8rem;
+    padding: .85rem 1.6rem;
+}
+
+.brand-mark {
+    align-items: center;
+    background: rgba(255, 255, 255, .16);
+    border: 1px solid rgba(255, 255, 255, .32);
+    border-radius: .85rem;
+    color: #fff;
+    display: inline-flex;
+    font-size: .9rem;
+    font-weight: 700;
+    height: 2.6rem;
+    justify-content: center;
+    letter-spacing: .04em;
+    width: 2.6rem;
+}
+
+/* ---------- Responsivo ---------- */
+
+@media (max-width: 991.98px) {
+    .page-header {
+        padding: 1.25rem;
+    }
+
+    .simple-table {
+        min-width: 620px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .page-title {
+        font-size: 1.4rem;
+    }
+
+    .card-header {
+        padding: .85rem 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .faq-accordion .accordion-button {
+        padding: .9rem 1rem;
+    }
+
+    .faq-accordion .accordion-body {
+        padding: 0 1rem 1rem;
+    }
+
+    .auth-header {
+        padding: 1.3rem 1.25rem 1.2rem;
+    }
+
+    .auth-body,
+    .auth-footer {
+        padding-inline: 1.25rem;
+    }
+}
+
