@@ -90,6 +90,33 @@ export async function atualizarPergunta(req, res) {
     }
 }
 
+export async function deletarPergunta(req, res) {
+    try {
+        const { id } = req.params;
+
+        const pergunta = await Pergunta.findByPk(id);
+
+        if (!pergunta) {
+            return res.status(404).json({
+                erro: 'Pergunta não encontrada.'
+            });
+        }
+
+        await pergunta.destroy();
+
+        res.json({
+            mensagem: 'Pergunta excluída com sucesso.'
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            erro: 'Erro ao excluir pergunta.'
+        });
+    }
+}
+
 export async function perguntaBusca(req, res) {
     res.render('perguntas', {
         isAdmin: req.usuario?.tipo === 'admin'

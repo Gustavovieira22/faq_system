@@ -13,6 +13,7 @@ createApp({
             carregando: true,
             isAdmin: Boolean(window.USUARIO_ADMIN),
             salvandoEdicao: false,
+            excluindoId: null,
             form: {
                 titulo: '',
                 resposta: '',
@@ -188,6 +189,40 @@ createApp({
                 this.salvandoEdicao = false;
             }
         },
+        async excluirPergunta(pergunta) {
+            if (!this.isAdmin || this.excluindoId) {
+                return;
+            }
+
+            if (!confirm(`Excluir a pergunta "${pergunta.titulo}"? Essa ação não pode ser desfeita.`)) {
+                return;
+            }
+
+            this.excluindoId = pergunta.id;
+
+            try {
+                const response = await fetch(`/api/perguntas/${pergunta.id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao excluir pergunta.');
+                }
+
+                //remove a pergunta da lista exibida sem recarregar a pagina
+                this.perguntas = this.perguntas.filter(item => item.id !== pergunta.id);
+
+            } catch (error) {
+                console.error(error);
+                alert(error.message);
+
+            } finally {
+                this.excluindoId = null;
+            }
+        },
+
         async getPerguntas(){
             try {
                 const response = await fetch('/api/perguntas');
