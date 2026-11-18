@@ -22,6 +22,13 @@ const Pergunta = sequelize.define('Pergunta', {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true
+    },
+
+    //quantidade de vezes que a resposta foi copiada: base do ranking de uso
+    copias: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
     }
 
     },{

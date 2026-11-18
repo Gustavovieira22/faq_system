@@ -1,7 +1,7 @@
 const { createApp } = Vue;
 
 //quantidade maxima de itens exibidos sem busca ativa (os demais aparecem pela busca)
-const LIMITE_EXIBICAO = 20;
+const LIMITE_EXIBICAO = 10;
 
 createApp({
     data() {
@@ -14,6 +14,8 @@ createApp({
             isAdmin: Boolean(window.USUARIO_ADMIN),
             salvandoEdicao: false,
             excluindoId: null,
+            copiadoId: null,
+            temporizadorCopiado: null,
             form: {
                 titulo: '',
                 resposta: '',
@@ -27,10 +29,14 @@ createApp({
     },
 
     computed: {
+        buscaAtiva() {
+            return Boolean(this.normalizarTexto(this.busca));
+        },
+
         perguntasFiltradas() {
             const termo = this.normalizarTexto(this.busca);
 
-            //sem busca: limita a quantidade de perguntas exibidas na tela
+            //sem busca: limita a quantidade de perguntas exibidas na tela (lista ja vem no ranking)
             if (!termo) {
                 return this.perguntas.slice(0, LIMITE_EXIBICAO);
             }
@@ -57,9 +63,7 @@ createApp({
         },
 
         textoBusca() {
-            const termo = this.normalizarTexto(this.busca);
-
-            if (termo) {
+            if (this.buscaAtiva) {
                 const encontradas = this.perguntasFiltradas.length;
 
                 return encontradas === 1
@@ -68,10 +72,10 @@ createApp({
             }
 
             if (this.perguntas.length > LIMITE_EXIBICAO) {
-                return `Mostrando as ${LIMITE_EXIBICAO} primeiras perguntas de ${this.perguntas.length}. Use a busca para ver as demais.`;
+                return `Mostrando as ${LIMITE_EXIBICAO} perguntas mais copiadas de ${this.perguntas.length}. Use a busca para ver as demais.`;
             }
 
-            return 'Digite parte do título para filtrar a lista.';
+            return 'Lista ordenada pelas respostas mais copiadas. Use a busca para filtrar.';
         }
     },
 
@@ -226,7 +230,10 @@ createApp({
         async getPerguntas(){
             try {
                 const response = await fetch('/api/perguntas');
-                this.perguntas = await response.json();
+                const perguntas = await response.json();
+
+                //o servidor ja envia no ranking; a ordenacao aqui mantem a tela consistente
+                this.perguntas = Array.isArray(perguntas) ? this.ordenarPorRanking(perguntas) : [];
 
             } catch (error) {
                 console.error('Erro ao carregar perguntas:', error);
@@ -306,20 +313,69 @@ createApp({
             }
         },
 
-        async copiarResposta(respostaHtml) {
+        async copiarResposta(pergunta) {
             try {
-                const texto = this.htmlParaTextoWhatsapp(respostaHtml);
+                const texto = this.htmlParaTextoWhatsapp(pergunta.resposta);
 
                 if (navigator.clipboard && window.isSecureContext) {
                     await navigator.clipboard.writeText(texto);
-                    return;
+                } else {
+                    this.copiarTextoComFallback(texto);
                 }
 
-                this.copiarTextoComFallback(texto);
+                this.destacarCopiado(pergunta.id);
+                this.registrarCopia(pergunta);
 
             } catch (error) {
                 console.error('Erro ao copiar resposta:', error);
                 alert('Não foi possível copiar a resposta.');
+            }
+        },
+
+        //feedback curto no botao para confirmar que o texto foi copiado
+        destacarCopiado(id) {
+            this.copiadoId = id;
+
+            if (this.temporizadorCopiado) {
+                clearTimeout(this.temporizadorCopiado);
+            }
+
+            this.temporizadorCopiado = setTimeout(() => {
+                this.copiadoId = null;
+                this.temporizadorCopiado = null;
+            }, 2000);
+        },
+
+        //mesma regra do servidor: mais copiadas primeiro e, no empate, a mais antiga
+        ordenarPorRanking(perguntas) {
+            return [...perguntas].sort((a, b) => {
+                const diferenca = (Number(b.copias) || 0) - (Number(a.copias) || 0);
+
+                return diferenca !== 0 ? diferenca : a.id - b.id;
+            });
+        },
+
+        //conta a copia no servidor; a lista NAO e reordenada agora para a pergunta
+        //nao pular de lugar enquanto o usuario ainda esta lendo/copiando
+        async registrarCopia(pergunta) {
+            try {
+                const response = await fetch(`/api/perguntas/${pergunta.id}/copiar`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao registrar a cópia.');
+                }
+
+                //o servidor limita uma copia por usuario por pergunta na janela definida
+                if (data.contabilizada) {
+                    pergunta.copias = data.copias;
+                }
+
+            } catch (error) {
+                console.error('Erro ao registrar a cópia da resposta:', error);
             }
         }
     },

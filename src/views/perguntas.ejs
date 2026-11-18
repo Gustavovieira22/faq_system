@@ -28,7 +28,7 @@
                 </h1>
 
                 <p class="page-subtitle mb-0 mt-2">
-                    Encontre a resposta pronta, abra o item e copie o texto no formato do WhatsApp.
+                    Encontre a resposta pronta, abra o item e copie o texto no formato do WhatsApp. As mais copiadas aparecem no topo.
                 </p>
             </div>
 
@@ -40,6 +40,10 @@
 
                     <a href="/cadastrar/variavel" class="btn btn-outline-light">
                         Variáveis
+                    </a>
+
+                    <a href="/logs" class="btn btn-outline-light">
+                        Logs
                     </a>
                 <% } %>
 
@@ -166,8 +170,9 @@
 
                         <button
                             type="button"
-                            class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
-                            @click="copiarResposta(pergunta.resposta)"
+                            class="btn btn-sm d-inline-flex align-items-center gap-1"
+                            :class="copiadoId === pergunta.id ? 'btn-success' : 'btn-outline-secondary'"
+                            @click="copiarResposta(pergunta)"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -181,7 +186,7 @@
                                 <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Z"/>
                             </svg>
 
-                            Copiar
+                            {{ copiadoId === pergunta.id ? 'Copiado!' : 'Copiar' }}
                         </button>
                     </div>
 

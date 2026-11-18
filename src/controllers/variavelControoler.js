@@ -1,4 +1,5 @@
 import Variavel from '../models/VariavelModel.js';
+import { registrarLog } from '../utils/logAlteracao.js';
 import {
     construirPlanilha,
     lerPlanilha,
@@ -52,6 +53,17 @@ export async function criarVariavel(req, res) {
         const variavel = await Variavel.create({
             nome,
             valor
+        });
+
+        await registrarLog(req, {
+            entidade: 'variavel',
+            acao: 'criar',
+            registroId: variavel.id,
+            descricao: `Cadastrou a variável "${variavel.nome}".`,
+            dadosNovos: {
+                nome: variavel.nome,
+                valor: variavel.valor
+            }
         });
 
         res.status(201).json(variavel);
@@ -110,6 +122,11 @@ export async function salvarTabelaVariaveis(req, res) {
             registros.push({ nome, valor });
         }
 
+        const variaveisAnteriores = await Variavel.findAll({
+            order: [['nome', 'ASC']],
+            transaction
+        });
+
         await Variavel.destroy({ where: {}, transaction });
 
         if (registros.length > 0) {
@@ -121,6 +138,38 @@ export async function salvarTabelaVariaveis(req, res) {
         const variaveisSalvas = await Variavel.findAll({
             order: [['nome', 'ASC']]
         });
+
+        const mapaAnterior = new Map(variaveisAnteriores.map(variavel => [variavel.nome, variavel.valor]));
+        const mapaNovo = new Map(registros.map(registro => [registro.nome, registro.valor]));
+
+        const inclusoes = registros.filter(registro => !mapaAnterior.has(registro.nome));
+        const exclusoes = variaveisAnteriores.filter(variavel => !mapaNovo.has(variavel.nome));
+        const alteracoes = registros.filter(registro => (
+            mapaAnterior.has(registro.nome) && mapaAnterior.get(registro.nome) !== registro.valor
+        ));
+
+        if (inclusoes.length + exclusoes.length + alteracoes.length > 0) {
+            const plural = (quantidade, singular, pluralTexto) => (
+                `${quantidade} ${quantidade === 1 ? singular : pluralTexto}`
+            );
+
+            const resumo = [
+                inclusoes.length > 0 ? plural(inclusoes.length, 'inclusão', 'inclusões') : null,
+                alteracoes.length > 0 ? plural(alteracoes.length, 'alteração', 'alterações') : null,
+                exclusoes.length > 0 ? plural(exclusoes.length, 'exclusão', 'exclusões') : null
+            ].filter(Boolean).join(', ');
+
+            await registrarLog(req, {
+                entidade: 'variavel',
+                acao: 'salvar',
+                descricao: `Atualizou a tabela de variáveis (${resumo}).`,
+                dadosAnteriores: variaveisAnteriores.map(variavel => ({
+                    nome: variavel.nome,
+                    valor: variavel.valor
+                })),
+                dadosNovos: registros
+            });
+        }
 
         res.json(variaveisSalvas);
 
@@ -156,9 +205,28 @@ export async function atualizarVariavel(req, res) {
             });
         }
 
+        const valorAnterior = variavel.valor;
+
         variavel.valor = valor;
 
         await variavel.save();
+
+        if (valorAnterior !== variavel.valor) {
+            await registrarLog(req, {
+                entidade: 'variavel',
+                acao: 'atualizar',
+                registroId: variavel.id,
+                descricao: `Alterou a variável "${variavel.nome}".`,
+                dadosAnteriores: {
+                    nome: variavel.nome,
+                    valor: valorAnterior
+                },
+                dadosNovos: {
+                    nome: variavel.nome,
+                    valor: variavel.valor
+                }
+            });
+        }
 
         res.json(variavel);
 

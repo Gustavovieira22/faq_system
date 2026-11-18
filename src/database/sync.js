@@ -1,22 +1,20 @@
 import sequelize from '../config/database.js';
 import { DataTypes } from 'sequelize';
 
-import '../models/PerguntaModel.js';
+import Pergunta from '../models/PerguntaModel.js';
 import '../models/VariavelModel.js';
+import '../models/LogModel.js';
+import '../models/CopiaPerguntaModel.js';
 import Usuario from '../models/UsuarioModel.js';
 import { gerarHashSenha } from '../utils/senha.js';
 
-async function garantirColunaTipoUsuario() {
+//adiciona a coluna apenas quando o banco ja existente ainda nao a possui
+async function garantirColuna(tabela, coluna, definicao) {
     const queryInterface = sequelize.getQueryInterface();
-    const tabelaUsuarios = Usuario.getTableName();
-    const colunas = await queryInterface.describeTable(tabelaUsuarios);
+    const colunas = await queryInterface.describeTable(tabela);
 
-    if (!colunas.tipo) {
-        await queryInterface.addColumn(tabelaUsuarios, 'tipo', {
-            type: DataTypes.STRING,
-            allowNull: false,
-            defaultValue: 'admin'
-        });
+    if (!colunas[coluna]) {
+        await queryInterface.addColumn(tabela, coluna, definicao);
     }
 }
 
@@ -24,7 +22,18 @@ try {
     await sequelize.authenticate();
 
     await sequelize.sync();
-    await garantirColunaTipoUsuario();
+
+    await garantirColuna(Usuario.getTableName(), 'tipo', {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'admin'
+    });
+
+    await garantirColuna(Pergunta.getTableName(), 'copias', {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    });
 
     const totalUsuarios = await Usuario.count();
 

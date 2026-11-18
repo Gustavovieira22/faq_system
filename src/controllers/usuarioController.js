@@ -1,5 +1,6 @@
 import Usuario from '../models/UsuarioModel.js';
 import { gerarHashSenha, validarSenha } from '../utils/senha.js';
+import { registrarLog } from '../utils/logAlteracao.js';
 
 async function carregarUsuarios() {
     return Usuario.findAll({
@@ -42,6 +43,18 @@ export async function criarUsuario(req, res) {
             ativo: true
         });
 
+        await registrarLog(req, {
+            entidade: 'usuario',
+            acao: 'criar',
+            descricao: `Cadastrou o usuário "${nome}" (${login}) como ${tipo === 'admin' ? 'admin' : 'comum'}.`,
+            dadosNovos: {
+                nome,
+                login,
+                tipo,
+                ativo: true
+            }
+        });
+
         const usuarios = await carregarUsuarios();
 
         res.render('usuarios', {
@@ -77,6 +90,19 @@ export async function excluirUsuario(req, res) {
         }
 
         await usuario.destroy();
+
+        await registrarLog(req, {
+            entidade: 'usuario',
+            acao: 'excluir',
+            registroId: usuario.id,
+            descricao: `Excluiu o usuário "${usuario.nome}" (${usuario.login}).`,
+            dadosAnteriores: {
+                nome: usuario.nome,
+                login: usuario.login,
+                tipo: usuario.tipo,
+                ativo: usuario.ativo
+            }
+        });
 
         const usuarios = await carregarUsuarios();
 
@@ -117,6 +143,13 @@ export async function alterarMinhaSenha(req, res) {
 
         usuario.senhaHash = gerarHashSenha(novaSenha);
         await usuario.save();
+
+        await registrarLog(req, {
+            entidade: 'usuario',
+            acao: 'senha',
+            registroId: usuario.id,
+            descricao: 'Alterou a própria senha de acesso.'
+        });
 
         const usuarios = await carregarUsuarios();
 

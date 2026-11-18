@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes.js';
 import perguntaRoutes from './routes/perguntaRoutes.js';
 import usuarioRoutes from './routes/usuarioRoutes.js';
 import variavelRoutes from './routes/variavelRoutes.js';
+import logRoutes from './routes/logRoutes.js';
 import { autenticar } from './middlewares/authMiddleware.js';
 
 const PORT = 3000;
@@ -22,6 +23,7 @@ app.use(autenticar);
 app.use('/', perguntaRoutes);
 app.use('/', variavelRoutes);
 app.use('/', usuarioRoutes);
+app.use('/', logRoutes);
 app.use((req, res) => res.redirect("/buscar/perguntas"));
 
 app.listen(PORT, () => {
