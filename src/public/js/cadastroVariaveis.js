@@ -28,6 +28,8 @@ createApp({
             arrastoLinhaId: null,
             arrastoColunaIndex: null,
             linhaAdicionadaId: null,
+            podeRolarEsquerda: false,
+            podeRolarDireita: false,
             reajustePercentual: '',
             mensagemReajuste: '',
             ultimoReajuste: null,
@@ -114,6 +116,14 @@ createApp({
             }
 
             return visiveis;
+        },
+
+        //mesmas condicoes do v-else da tabela agrupada: controla a barra de setas
+        tabelaVisivel() {
+            return !this.carregando
+                && this.linhas.length > 0
+                && this.colunas.length > 0
+                && this.linhasFiltradas.length > 0;
         },
 
         simplesFiltradas() {
@@ -290,7 +300,13 @@ createApp({
             deep: true,
             handler() {
                 this.verificarAlteracoesPendentes();
+                this.$nextTick(() => this.atualizarSetasTabela());
             }
+        },
+
+        //recalcula as setas quando a tabela aparece, e alterada ou filtrada
+        linhasFiltradas() {
+            this.$nextTick(() => this.atualizarSetasTabela());
         },
 
         simples: {
@@ -815,6 +831,60 @@ createApp({
         soltarColuna(indiceDestino) {
             this.moverItem(this.colunas, this.arrastoColunaIndex, indiceDestino);
             this.finalizarArrastoColuna();
+        },
+
+        //largura de uma coluna de dados: cada clique nas setas rola exatamente uma coluna
+        passoRolagemColuna(container) {
+            const referencia = container.querySelector('thead th:nth-child(2)')
+                || container.querySelector('thead th');
+            const largura = referencia ? referencia.getBoundingClientRect().width : 0;
+
+            if (largura > 0) {
+                return Math.round(largura);
+            }
+
+            return Math.max(160, Math.round(container.clientWidth * 0.6));
+        },
+
+        //habilita/desabilita as setas conforme a posicao da rolagem horizontal
+        atualizarSetasTabela() {
+            const container = this.$refs.rolagemTabela;
+
+            if (!container) {
+                this.podeRolarEsquerda = false;
+                this.podeRolarDireita = false;
+                return;
+            }
+
+            const tolerancia = 4;
+
+            this.podeRolarEsquerda = container.scrollLeft > tolerancia;
+            this.podeRolarDireita = container.scrollLeft + container.clientWidth
+                < container.scrollWidth - tolerancia;
+        },
+
+        rolarTabela(direcao) {
+            const container = this.$refs.rolagemTabela;
+
+            if (!container) {
+                return;
+            }
+
+            const passo = this.passoRolagemColuna(container) * (direcao < 0 ? -1 : 1);
+            const destino = Math.max(0, container.scrollLeft + passo);
+
+            if (typeof container.scrollTo === 'function') {
+                container.scrollTo({ left: destino, behavior: 'smooth' });
+            } else {
+                container.scrollLeft = destino;
+            }
+
+            //garante o estado final das setas mesmo quando o navegador nao anima a rolagem
+            window.setTimeout(() => this.atualizarSetasTabela(), 320);
+        },
+
+        aoRedimensionarJanela() {
+            this.atualizarSetasTabela();
         },
 
         aplicarReajuste() {
@@ -1442,5 +1512,12 @@ createApp({
 
     mounted() {
         this.carregarVariaveis();
+
+        window.addEventListener('resize', this.aoRedimensionarJanela);
+        this.$nextTick(() => this.atualizarSetasTabela());
+    },
+
+    beforeUnmount() {
+        window.removeEventListener('resize', this.aoRedimensionarJanela);
     }
 }).mount('#app');

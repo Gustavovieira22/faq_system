@@ -114,11 +114,39 @@
         }
 
         .variables-table td:first-child {
-            background: var(--app-surface);
+            background: var(--app-surface-soft);
         }
 
         .variables-table tbody tr:hover td:first-child {
-            background: #f8fafc;
+            background: #eef3fb;
+        }
+
+        /* a primeira coluna ja tem fundo suave: o handle clareia no hover */
+        .variables-table tbody td:first-child .drag-handle:hover {
+            background: var(--app-surface);
+        }
+
+        /* nome da linha em destaque, com o mesmo visual dos titulos das colunas */
+        .variables-table tbody td:first-child input.form-control-sm {
+            background: transparent;
+            border-color: transparent;
+            color: var(--app-ink);
+            font-size: .82rem;
+            font-weight: 650;
+            letter-spacing: 0;
+            padding-inline: .5rem;
+            transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+        }
+
+        .variables-table tbody td:first-child input.form-control-sm:hover {
+            background: var(--app-surface);
+            border-color: #dbe3ef;
+        }
+
+        .variables-table tbody td:first-child input.form-control-sm:focus {
+            background: var(--app-surface);
+            border-color: #a9bfe0;
+            box-shadow: 0 0 0 .2rem var(--app-ring);
         }
 
         .table-input {
@@ -151,6 +179,33 @@
             justify-content: center;
             line-height: 1;
             padding: .28rem .45rem;
+        }
+
+        /* barra de navegacao horizontal entre as colunas da tabela */
+        .variables-nav {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem .75rem;
+            justify-content: space-between;
+        }
+
+        .variables-nav .btn-icon {
+            background: var(--app-surface);
+            border-color: var(--app-line);
+            color: var(--app-muted);
+            min-width: 2.3rem;
+            padding: .32rem .5rem;
+        }
+
+        .variables-nav .btn-icon:not(:disabled):hover {
+            background: var(--app-surface-soft);
+            border-color: #a9bfe0;
+            color: var(--app-brand-dark);
+        }
+
+        .variables-nav .btn-icon:disabled {
+            opacity: .4;
         }
 
         .reajuste-campo {
@@ -476,6 +531,43 @@
             </div>
 
             <div
+                v-if="tabelaVisivel"
+                class="variables-nav mb-2"
+            >
+                <span class="text-muted small">
+                    Use as setas para navegar entre as colunas.
+                </span>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary btn-icon"
+                        :disabled="!podeRolarEsquerda"
+                        title="Colunas anteriores"
+                        aria-label="Rolar a tabela para a esquerda"
+                        @click="rolarTabela(-1)"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                            <path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary btn-icon"
+                        :disabled="!podeRolarDireita"
+                        title="Próximas colunas"
+                        aria-label="Rolar a tabela para a direita"
+                        @click="rolarTabela(1)"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                            <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div
                 v-if="carregando"
                 class="empty-state d-flex align-items-center justify-content-center gap-2"
             >
@@ -512,7 +604,9 @@
 
             <div
                 v-else
+                ref="rolagemTabela"
                 class="table-responsive"
+                @scroll.passive="atualizarSetasTabela"
             >
                 <table class="table table-hover variables-table mb-0">
                     <thead>
