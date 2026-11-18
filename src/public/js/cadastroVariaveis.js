@@ -25,6 +25,18 @@ createApp({
             alteracoesPendentes: false,
             estadoSalvo: '',
             nomeVariavelOrdem: '__ORDEM_VARIAVEIS__',
+            //nomes alterados desde o ultimo salvamento: servem para espelhar a mudanca nos textos das perguntas
+            renomeacoes: {
+                linhas: {},
+                colunas: {},
+                simples: {}
+            },
+            //ultimo nome conhecido de cada linha e variavel simples: o v-model altera o campo antes
+            //do evento @change, entao o nome anterior nao pode ser lido do proprio item
+            nomesRegistrados: {
+                linhas: {},
+                simples: {}
+            },
             arrastoLinhaId: null,
             arrastoColunaIndex: null,
             linhaAdicionadaId: null,
@@ -124,6 +136,21 @@ createApp({
                 && this.linhas.length > 0
                 && this.colunas.length > 0
                 && this.linhasFiltradas.length > 0;
+        },
+
+        //renomeacoes ainda nao salvas: avisadas na tela porque tambem alteram os textos das perguntas
+        resumoRenomeacoesPendentes() {
+            const renomeacoes = this.montarRenomeacoes();
+
+            return [
+                ...renomeacoes.linhas,
+                ...renomeacoes.colunas,
+                ...renomeacoes.simples
+            ].map(item => `${item.de} → ${item.para}`).join(', ');
+        },
+
+        temRenomeacoesPendentes() {
+            return this.resumoRenomeacoesPendentes.length > 0;
         },
 
         simplesFiltradas() {
@@ -470,6 +497,9 @@ createApp({
         },
 
         montarTabela(variaveis) {
+            //estado vindo do banco: nenhuma renomeacao pendente
+            this.limparRenomeacoes();
+
             const ordemSalva = this.lerOrdemSalva(variaveis);
             const linhasMap = new Map(ordemSalva.linhas.map(nome => [
                 nome,
@@ -550,6 +580,7 @@ createApp({
             this.mensagemImportacao = '';
             this.mensagemExportacao = '';
             this.ultimaImportacao = null;
+            this.registrarNomesAtuais();
         },
 
         async carregarVariaveis() {
@@ -608,6 +639,7 @@ createApp({
             this.linhas.push(novaLinha);
             this.linhaAdicionadaId = novaLinha._id;
             this.novaLinha = '';
+            this.nomesRegistrados.linhas[novaLinha._id] = novaLinha.nome;
         },
 
         adicionarColuna() {
@@ -658,6 +690,7 @@ createApp({
         },
 
         normalizarLinha(linha) {
+            const anterior = this.nomesRegistrados.linhas[linha._id];
             const nome = this.normalizarIdentificador(linha.nome);
 
             if (!nome) {
@@ -679,6 +712,8 @@ createApp({
             }
 
             linha.nome = nome;
+            this.nomesRegistrados.linhas[linha._id] = nome;
+            this.registrarRenomeacao('linhas', anterior, nome);
         },
 
         iniciarEdicaoColuna(coluna) {
@@ -716,6 +751,8 @@ createApp({
                     linha.valores[nome] = linha.valores[original] ?? '';
                     delete linha.valores[original];
                 });
+
+                this.registrarRenomeacao('colunas', original, nome);
             }
 
             this.colunas[indice] = nome;
@@ -746,11 +783,14 @@ createApp({
                 return;
             }
 
-            this.simples.push({
+            const novaSimples = {
                 _id: this.criarId('simples'),
                 nome,
                 valor
-            });
+            };
+
+            this.simples.push(novaSimples);
+            this.nomesRegistrados.simples[novaSimples._id] = novaSimples.nome;
             this.novoSimples = {
                 nome: '',
                 valor: ''
@@ -762,6 +802,7 @@ createApp({
         },
 
         normalizarSimples(variavel) {
+            const anterior = this.nomesRegistrados.simples[variavel._id];
             const nome = this.normalizarIdentificador(variavel.nome);
 
             if (!nome) {
@@ -783,6 +824,84 @@ createApp({
             }
 
             variavel.nome = nome;
+            this.nomesRegistrados.simples[variavel._id] = nome;
+            this.registrarRenomeacao('simples', anterior, nome);
+        },
+
+        //guarda o nome original de cada item renomeado, encadeando ou desfazendo renomeacoes sucessivas
+        //(a -> b e depois b -> c vira a -> c; voltar de b para a simplesmente descarta o registro)
+        registrarRenomeacao(tipo, anterior, atual) {
+            const de = String(anterior ?? '').trim();
+            const para = String(atual ?? '').trim();
+
+            if (!de || !para || de === para || this.nomeReservado(de) || this.nomeReservado(para)) {
+                return;
+            }
+
+            const mapa = { ...this.renomeacoes[tipo] };
+
+            if (mapa[para] === de) {
+                //voltou ao nome original: nao existe mais nada para espelhar
+                delete mapa[para];
+
+            } else {
+                let continuacao = false;
+
+                Object.keys(mapa).forEach(origem => {
+                    if (mapa[origem] === de) {
+                        mapa[origem] = para;
+                        continuacao = true;
+                    }
+                });
+
+                //nome reaproveitado por outro item: o mapeamento antigo deixa de valer
+                if (Object.prototype.hasOwnProperty.call(mapa, para)) {
+                    delete mapa[para];
+                }
+
+                if (!continuacao) {
+                    mapa[de] = para;
+                }
+            }
+
+            this.renomeacoes = {
+                ...this.renomeacoes,
+                [tipo]: mapa
+            };
+        },
+
+        montarRenomeacoes() {
+            const listar = mapa => Object.keys(mapa)
+                .filter(de => mapa[de] && mapa[de] !== de)
+                .map(de => ({ de, para: mapa[de] }));
+
+            return {
+                linhas: listar(this.renomeacoes.linhas),
+                colunas: listar(this.renomeacoes.colunas),
+                simples: listar(this.renomeacoes.simples)
+            };
+        },
+
+        limparRenomeacoes() {
+            this.renomeacoes = {
+                linhas: {},
+                colunas: {},
+                simples: {}
+            };
+        },
+
+        //guarda o nome atual de cada item, base para detectar a proxima renomeacao
+        registrarNomesAtuais() {
+            const mapear = lista => lista.reduce((mapa, item) => {
+                mapa[item._id] = item.nome;
+
+                return mapa;
+            }, {});
+
+            this.nomesRegistrados = {
+                linhas: mapear(this.linhas),
+                simples: mapear(this.simples)
+            };
         },
 
         moverItem(lista, origem, destino) {
@@ -1377,7 +1496,8 @@ createApp({
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        variaveis: this.montarPayload()
+                        variaveis: this.montarPayload(),
+                        renomeacoes: this.montarRenomeacoes()
                     })
                 });
 
@@ -1387,12 +1507,12 @@ createApp({
                     throw new Error(data.erro || 'Erro ao salvar variaveis.');
                 }
 
-                this.variaveis = data;
-                this.montarTabela(data);
+                this.variaveis = data.variaveis ?? data;
+                this.montarTabela(this.variaveis);
                 this.$nextTick(() => {
                     this.registrarEstadoSalvo();
                 });
-                alert('Variaveis salvas com sucesso.');
+                alert(this.mensagemSalvamento(data.perguntasAtualizadas));
 
             } catch (error) {
                 console.error(error);
@@ -1401,6 +1521,20 @@ createApp({
             } finally {
                 this.salvando = false;
             }
+        },
+
+        mensagemSalvamento(perguntasAtualizadas) {
+            const total = Number(perguntasAtualizadas) || 0;
+
+            if (total === 0) {
+                return 'Variaveis salvas com sucesso.';
+            }
+
+            const complemento = total === 1
+                ? '1 pergunta teve as variáveis atualizadas.'
+                : `${total} perguntas tiveram as variáveis atualizadas.`;
+
+            return `Variaveis salvas com sucesso. ${complemento}`;
         },
 
         async copiarTexto(texto) {

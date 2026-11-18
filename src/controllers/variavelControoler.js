@@ -1,4 +1,5 @@
 import Variavel from '../models/VariavelModel.js';
+import Pergunta from '../models/PerguntaModel.js';
 import { registrarLog } from '../utils/logAlteracao.js';
 import {
     construirPlanilha,
@@ -6,6 +7,12 @@ import {
     nomeArquivoExportacao,
     ErroPlanilha
 } from '../utils/planilhaVariaveis.js';
+import {
+    resolverRenomeacoes,
+    temRenomeacoes,
+    descreverRenomeacoes,
+    renomearVariaveisNoTexto
+} from '../utils/renomearVariaveis.js';
 
 const TIPO_PLANILHA = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -77,11 +84,46 @@ export async function criarVariavel(req, res) {
     }
 }
 
+//espelha as renomeacoes nos textos das perguntas: evita marcadores apontando para variaveis extintas
+async function ajustarPerguntasRenomeadas(renomeacoes, transaction) {
+    if (!temRenomeacoes(renomeacoes)) {
+        return [];
+    }
+
+    const perguntas = await Pergunta.findAll({ transaction });
+    const ajustadas = [];
+
+    for (const pergunta of perguntas) {
+        const titulo = renomearVariaveisNoTexto(pergunta.titulo, renomeacoes);
+        const resposta = renomearVariaveisNoTexto(pergunta.resposta, renomeacoes);
+
+        if (titulo === pergunta.titulo && resposta === pergunta.resposta) {
+            continue;
+        }
+
+        ajustadas.push({
+            id: pergunta.id,
+            ativo: pergunta.ativo,
+            tituloAnterior: pergunta.titulo,
+            respostaAnterior: pergunta.resposta,
+            titulo,
+            resposta
+        });
+
+        pergunta.titulo = titulo;
+        pergunta.resposta = resposta;
+
+        await pergunta.save({ transaction });
+    }
+
+    return ajustadas;
+}
+
 export async function salvarTabelaVariaveis(req, res) {
     const transaction = await Variavel.sequelize.transaction();
 
     try {
-        const { variaveis } = req.body;
+        const { variaveis, renomeacoes: renomeacoesEnviadas } = req.body ?? {};
 
         if (!Array.isArray(variaveis)) {
             await transaction.rollback();
@@ -133,6 +175,10 @@ export async function salvarTabelaVariaveis(req, res) {
             await Variavel.bulkCreate(registros, { transaction });
         }
 
+        //a tela avisa quais nomes mudaram; os textos das perguntas acompanham a mudanca
+        const renomeacoes = resolverRenomeacoes(renomeacoesEnviadas, registros);
+        const perguntasAjustadas = await ajustarPerguntasRenomeadas(renomeacoes, transaction);
+
         await transaction.commit();
 
         const variaveisSalvas = await Variavel.findAll({
@@ -171,7 +217,30 @@ export async function salvarTabelaVariaveis(req, res) {
             });
         }
 
-        res.json(variaveisSalvas);
+        //cada pergunta ajustada entra no log como uma alteracao propria
+        for (const pergunta of perguntasAjustadas) {
+            await registrarLog(req, {
+                entidade: 'pergunta',
+                acao: 'atualizar',
+                registroId: pergunta.id,
+                descricao: `Ajustou as variáveis da pergunta "${pergunta.titulo}" após renomear: ${descreverRenomeacoes(renomeacoes)}.`,
+                dadosAnteriores: {
+                    titulo: pergunta.tituloAnterior,
+                    resposta: pergunta.respostaAnterior,
+                    ativo: pergunta.ativo
+                },
+                dadosNovos: {
+                    titulo: pergunta.titulo,
+                    resposta: pergunta.resposta,
+                    ativo: pergunta.ativo
+                }
+            });
+        }
+
+        res.json({
+            variaveis: variaveisSalvas,
+            perguntasAtualizadas: perguntasAjustadas.length
+        });
 
     } catch (error) {
         if (!transaction.finished) {

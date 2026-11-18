@@ -311,6 +311,7 @@
 
                 <p class="page-subtitle mb-0 mt-2">
                     Use <span class="placeholder-code">{{ exemplo_placeholder }}</span> nas respostas do FAQ.
+                    Ao renomear uma variável, as perguntas que já a utilizam são atualizadas automaticamente.
                 </p>
             </div>
 
@@ -352,6 +353,21 @@
 
         <span>
             Atenção: você tem alterações não salvas. Clique em <strong>Salvar variáveis</strong> antes de sair da página.
+        </span>
+    </div>
+
+    <div
+        v-if="temRenomeacoesPendentes"
+        class="alert alert-info d-flex align-items-start gap-2 border-0 shadow-sm mb-4"
+        role="status"
+    >
+        <svg class="flex-shrink-0 mt-1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16Zm.9-11.9a.9.9 0 1 1-1.8 0 .9.9 0 0 1 1.8 0ZM7 7a1 1 0 0 1 2 0v4a1 1 0 0 1-2 0V7Z"/>
+        </svg>
+
+        <span>
+            Renomeações pendentes: <strong>{{ resumoRenomeacoesPendentes }}</strong>.
+            Ao salvar, os textos das perguntas que usam essas variáveis serão atualizados automaticamente.
         </span>
     </div>
 
