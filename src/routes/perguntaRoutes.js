@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { atualizarPergunta, deletarPergunta, listarPerguntas, criarPergunta, perguntaBusca, registrarCopia } from '../controllers/perguntaController.js';
+import { atualizarPergunta, buscarPerguntas, deletarPergunta, listarPerguntas, criarPergunta, perguntaBusca, registrarCopia } from '../controllers/perguntaController.js';
 import { exigirAdmin } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
+router.get('/api/perguntas/busca', buscarPerguntas);
 router.get('/api/perguntas', listarPerguntas);
 router.get('/buscar/perguntas', perguntaBusca);
 

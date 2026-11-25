@@ -86,8 +86,8 @@
                     type="text"
                     class="form-control form-control-lg"
                     v-model="busca"
-                    placeholder="Busque por título ou conteúdo..."
-                    aria-label="Buscar pergunta por título ou conteúdo"
+                    placeholder="Digite o assunto..."
+                    aria-label="Buscar pergunta"
                     autofocus
                 >
             </div>
@@ -111,6 +111,28 @@
         <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
 
         <span>Carregando perguntas...</span>
+    </div>
+
+    <div
+        v-else-if="buscando"
+        class="empty-state d-flex align-items-center justify-content-center gap-2"
+    >
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+
+        <span>Buscando perguntas...</span>
+    </div>
+
+    <div
+        v-else-if="erroBusca"
+        class="empty-state"
+    >
+        <div class="fw-semibold mb-1">
+            Não foi possível buscar agora
+        </div>
+
+        <div class="small">
+            {{ erroBusca }}
+        </div>
     </div>
 
     <div

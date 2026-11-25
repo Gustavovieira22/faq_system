@@ -6,11 +6,27 @@ import CopiaPergunta from '../models/CopiaPerguntaModel.js';
 
 import {substituirVariaveis} from  '../utils/substituirVariavel.js';
 import { registrarLog } from '../utils/logAlteracao.js';
+import { buscarPorRelevancia } from '../utils/buscaRelevancia.js';
 
 //cada usuario soma no maximo uma copia por pergunta dentro da janela abaixo:
 //evita que cliques repetidos subam artificialmente uma pergunta no ranking
 const JANELA_LIMITE_COPIAS_MS = 24 * 60 * 60 * 1000;
 const LIMITE_COPIAS_POR_USUARIO = 1;
+
+//protege a busca contra consultas gigantes vindas da URL
+const LIMITE_CARACTERES_CONSULTA = 200;
+
+function montarPerguntaResposta(pergunta, variaveis, isAdmin) {
+    const dados = pergunta.toJSON();
+
+    if (isAdmin) {
+        dados.respostaOriginal = dados.resposta;
+    }
+
+    dados.resposta = substituirVariaveis(dados.resposta, variaveis);
+
+    return dados;
+}
 
 export async function listarPerguntas(req, res) {
     try {
@@ -20,21 +36,48 @@ export async function listarPerguntas(req, res) {
             order: [['copias', 'DESC'], ['id', 'ASC']]
         });
         const variaveis = await Variavel.findAll();
+        const isAdmin = req.usuario?.tipo === 'admin';
 
-        const resultado = perguntas.map(pergunta => {
-            const dados = pergunta.toJSON();
-
-            if (req.usuario?.tipo === 'admin') {
-                dados.respostaOriginal = dados.resposta;
-            }
-
-            dados.resposta = substituirVariaveis( dados.resposta, variaveis);
-
-            return dados;
-        });
+        const resultado = perguntas.map(pergunta => (
+            montarPerguntaResposta(pergunta, variaveis, isAdmin)
+        ));
         
         res.json(resultado);
         
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            erro: 'Erro ao buscar perguntas.'
+        });
+    }
+}
+
+//busca full-text: considera titulo (70%) e corpo da resposta (30%),
+//ordena por relevancia e descarta resultados abaixo do score minimo
+export async function buscarPerguntas(req, res) {
+    try {
+        const consulta = typeof req.query.q === 'string'
+            ? req.query.q.slice(0, LIMITE_CARACTERES_CONSULTA)
+            : '';
+
+        if (!consulta.trim()) {
+            return res.json([]);
+        }
+
+        const perguntas = await Pergunta.findAll();
+        const variaveis = await Variavel.findAll();
+        const isAdmin = req.usuario?.tipo === 'admin';
+
+        //pesquisa exatamente o texto que o usuario ve (variaveis ja aplicadas)
+        const documentos = perguntas.map(pergunta => (
+            montarPerguntaResposta(pergunta, variaveis, isAdmin)
+        ));
+
+        const resultados = buscarPorRelevancia(documentos, consulta);
+
+        res.json(resultados);
+
     } catch (error) {
         console.error(error);
 

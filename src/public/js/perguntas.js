@@ -10,12 +10,17 @@ createApp({
             editorEdicaoResposta: null,
             perguntas: [],
             busca: '',
+            resultadosBusca: [],
+            buscando: false,
+            erroBusca: '',
             carregando: true,
             isAdmin: Boolean(window.USUARIO_ADMIN),
             salvandoEdicao: false,
             excluindoId: null,
             copiadoId: null,
             temporizadorCopiado: null,
+            temporizadorBusca: null,
+            sequenciaBusca: 0,
             form: {
                 titulo: '',
                 resposta: '',
@@ -34,20 +39,13 @@ createApp({
         },
 
         perguntasFiltradas() {
-            const termo = this.normalizarTexto(this.busca);
-
             //sem busca: limita a quantidade de perguntas exibidas na tela (lista ja vem no ranking)
-            if (!termo) {
+            if (!this.buscaAtiva) {
                 return this.perguntas.slice(0, LIMITE_EXIBICAO);
             }
 
-            //com busca: procura no titulo e no corpo da resposta (ignora acentos e maiusculas)
-            //varios termos funcionam como filtros combinados: todos precisam aparecer
-            const termos = termo.split(/\s+/).filter(Boolean);
-
-            return this.perguntas.filter(pergunta => (
-                termos.every(item => this.textoBuscaPergunta(pergunta).includes(item))
-            ));
+            //com busca: usa o resultado pontuado pelo servidor (titulo 70% / resposta 30%)
+            return this.resultadosBusca;
         },
 
         resumoPerguntas() {
@@ -67,6 +65,14 @@ createApp({
 
         textoBusca() {
             if (this.buscaAtiva) {
+                if (this.buscando) {
+                    return 'Buscando perguntas...';
+                }
+
+                if (this.erroBusca) {
+                    return this.erroBusca;
+                }
+
                 const encontradas = this.perguntasFiltradas.length;
 
                 return encontradas === 1
@@ -78,7 +84,13 @@ createApp({
                 return `Mostrando as ${LIMITE_EXIBICAO} perguntas mais copiadas de ${this.perguntas.length}. Use a busca para ver as demais.`;
             }
 
-            return 'Lista ordenada pelas respostas mais copiadas. Busque pelo título ou pelo conteúdo da resposta.';
+            return 'Lista ordenada pelas respostas mais copiadas. Use a busca para filtrar.';
+        }
+    },
+
+    watch: {
+        busca() {
+            this.agendarBusca();
         }
     },
 
@@ -91,40 +103,67 @@ createApp({
                 .trim();
         },
 
-        //converte o HTML da resposta em texto simples para a busca
-        //(troca quebras e blocos por espaco para nao grudar palavras e decodifica entidades)
-        textoPuroHtml(html) {
-            const semTags = String(html || '')
-                .replace(/<br\s*\/?>/gi, ' ')
-                .replace(/<\/(p|div|li|ul|ol|h[1-6]|tr|td|th|blockquote)>/gi, ' ')
-                .replace(/<[^>]+>/g, ' ');
+        //debounce: evita disparar uma requisicao a cada tecla digitada
+        agendarBusca() {
+            if (this.temporizadorBusca) {
+                clearTimeout(this.temporizadorBusca);
+                this.temporizadorBusca = null;
+            }
 
-            const decodificador = document.createElement('textarea');
-            decodificador.innerHTML = semTags;
+            //invalida respostas de buscas anteriores que ainda estejam em voo
+            this.sequenciaBusca += 1;
 
-            return decodificador.value;
+            const termo = this.busca.trim();
+
+            if (!this.normalizarTexto(termo)) {
+                this.resultadosBusca = [];
+                this.buscando = false;
+                this.erroBusca = '';
+                return;
+            }
+
+            this.buscando = true;
+            this.erroBusca = '';
+
+            this.temporizadorBusca = setTimeout(() => {
+                this.temporizadorBusca = null;
+                this.buscarPerguntas(termo);
+            }, 250);
         },
 
-        //texto normalizado usado na busca: titulo + corpo da resposta
-        montarTextoBusca(pergunta) {
-            return this.normalizarTexto(
-                `${pergunta.titulo || ''} ${this.textoPuroHtml(pergunta.resposta)}`
-            );
-        },
+        async buscarPerguntas(termo) {
+            const sequencia = this.sequenciaBusca;
 
-        //indice montado uma vez ao carregar a lista, evitando reprocessar o HTML a cada tecla
-        montarIndiceBusca(perguntas) {
-            return perguntas.map(pergunta => ({
-                ...pergunta,
-                textoBusca: this.montarTextoBusca(pergunta)
-            }));
-        },
+            try {
+                const response = await fetch(`/api/perguntas/busca?q=${encodeURIComponent(termo)}`);
+                const data = await response.json();
 
-        //usa o indice pronto; se a pergunta ainda nao tiver indice, calcula na hora
-        textoBuscaPergunta(pergunta) {
-            return typeof pergunta.textoBusca === 'string'
-                ? pergunta.textoBusca
-                : this.montarTextoBusca(pergunta);
+                if (!response.ok) {
+                    throw new Error(data.erro || 'Erro ao buscar perguntas.');
+                }
+
+                //uma busca mais nova ja foi disparada: descarta esta resposta
+                if (sequencia !== this.sequenciaBusca) {
+                    return;
+                }
+
+                this.resultadosBusca = Array.isArray(data) ? data : [];
+                this.erroBusca = '';
+
+            } catch (error) {
+                if (sequencia !== this.sequenciaBusca) {
+                    return;
+                }
+
+                console.error('Erro ao buscar perguntas:', error);
+                this.resultadosBusca = [];
+                this.erroBusca = 'Não foi possível buscar agora. Tente novamente.';
+
+            } finally {
+                if (sequencia === this.sequenciaBusca) {
+                    this.buscando = false;
+                }
+            }
         },
 
         async cadastrarPergunta() {
@@ -257,6 +296,11 @@ createApp({
                 //remove a pergunta da lista exibida sem recarregar a pagina
                 this.perguntas = this.perguntas.filter(item => item.id !== pergunta.id);
 
+                //se ha uma busca ativa, refaz para o resultado nao exibir item excluido
+                if (this.buscaAtiva) {
+                    this.agendarBusca();
+                }
+
             } catch (error) {
                 console.error(error);
                 alert(error.message);
@@ -272,10 +316,12 @@ createApp({
                 const perguntas = await response.json();
 
                 //o servidor ja envia no ranking; a ordenacao aqui mantem a tela consistente
-                const lista = Array.isArray(perguntas) ? this.ordenarPorRanking(perguntas) : [];
+                this.perguntas = Array.isArray(perguntas) ? this.ordenarPorRanking(perguntas) : [];
 
-                //inclui o corpo da resposta no indice de busca
-                this.perguntas = this.montarIndiceBusca(lista);
+                //uma pergunta pode ter sido criada/editada: atualiza a busca ativa
+                if (this.buscaAtiva) {
+                    this.agendarBusca();
+                }
 
             } catch (error) {
                 console.error('Erro ao carregar perguntas:', error);
@@ -414,6 +460,14 @@ createApp({
                 //o servidor limita uma copia por usuario por pergunta na janela definida
                 if (data.contabilizada) {
                     pergunta.copias = data.copias;
+
+                    //a lista base e os resultados da busca sao objetos distintos:
+                    //mantem os dois sincronizados para quando a busca for limpa
+                    const perguntaBase = this.perguntas.find(item => item.id === pergunta.id);
+
+                    if (perguntaBase) {
+                        perguntaBase.copias = data.copias;
+                    }
                 }
 
             } catch (error) {
@@ -450,5 +504,12 @@ createApp({
                 ]
             }
         });
+    },
+
+    beforeUnmount() {
+        if (this.temporizadorBusca) {
+            clearTimeout(this.temporizadorBusca);
+            this.temporizadorBusca = null;
+        }
     }
 }).mount('#app');
