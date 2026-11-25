@@ -41,9 +41,12 @@ createApp({
                 return this.perguntas.slice(0, LIMITE_EXIBICAO);
             }
 
-            //com busca: exibe todos os resultados (ignora acentos e maiusculas)
+            //com busca: procura no titulo e no corpo da resposta (ignora acentos e maiusculas)
+            //varios termos funcionam como filtros combinados: todos precisam aparecer
+            const termos = termo.split(/\s+/).filter(Boolean);
+
             return this.perguntas.filter(pergunta => (
-                this.normalizarTexto(pergunta.titulo).includes(termo)
+                termos.every(item => this.textoBuscaPergunta(pergunta).includes(item))
             ));
         },
 
@@ -75,7 +78,7 @@ createApp({
                 return `Mostrando as ${LIMITE_EXIBICAO} perguntas mais copiadas de ${this.perguntas.length}. Use a busca para ver as demais.`;
             }
 
-            return 'Lista ordenada pelas respostas mais copiadas. Use a busca para filtrar.';
+            return 'Lista ordenada pelas respostas mais copiadas. Busque pelo título ou pelo conteúdo da resposta.';
         }
     },
 
@@ -86,6 +89,42 @@ createApp({
                 .replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
                 .trim();
+        },
+
+        //converte o HTML da resposta em texto simples para a busca
+        //(troca quebras e blocos por espaco para nao grudar palavras e decodifica entidades)
+        textoPuroHtml(html) {
+            const semTags = String(html || '')
+                .replace(/<br\s*\/?>/gi, ' ')
+                .replace(/<\/(p|div|li|ul|ol|h[1-6]|tr|td|th|blockquote)>/gi, ' ')
+                .replace(/<[^>]+>/g, ' ');
+
+            const decodificador = document.createElement('textarea');
+            decodificador.innerHTML = semTags;
+
+            return decodificador.value;
+        },
+
+        //texto normalizado usado na busca: titulo + corpo da resposta
+        montarTextoBusca(pergunta) {
+            return this.normalizarTexto(
+                `${pergunta.titulo || ''} ${this.textoPuroHtml(pergunta.resposta)}`
+            );
+        },
+
+        //indice montado uma vez ao carregar a lista, evitando reprocessar o HTML a cada tecla
+        montarIndiceBusca(perguntas) {
+            return perguntas.map(pergunta => ({
+                ...pergunta,
+                textoBusca: this.montarTextoBusca(pergunta)
+            }));
+        },
+
+        //usa o indice pronto; se a pergunta ainda nao tiver indice, calcula na hora
+        textoBuscaPergunta(pergunta) {
+            return typeof pergunta.textoBusca === 'string'
+                ? pergunta.textoBusca
+                : this.montarTextoBusca(pergunta);
         },
 
         async cadastrarPergunta() {
@@ -233,7 +272,10 @@ createApp({
                 const perguntas = await response.json();
 
                 //o servidor ja envia no ranking; a ordenacao aqui mantem a tela consistente
-                this.perguntas = Array.isArray(perguntas) ? this.ordenarPorRanking(perguntas) : [];
+                const lista = Array.isArray(perguntas) ? this.ordenarPorRanking(perguntas) : [];
+
+                //inclui o corpo da resposta no indice de busca
+                this.perguntas = this.montarIndiceBusca(lista);
 
             } catch (error) {
                 console.error('Erro ao carregar perguntas:', error);
